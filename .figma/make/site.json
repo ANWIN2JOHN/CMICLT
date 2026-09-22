@@ -1,0 +1,10 @@
+{
+  "description": "A mobile and tablet app delivering secure, accessible membership experiences with bilingual support and adaptive layouts optimized for touch interaction.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

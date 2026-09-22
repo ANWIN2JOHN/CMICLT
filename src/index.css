@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap');
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   CMICLT design tokens — emerald + gold institutional identity
+   ============================================================ */
+:root {
+  /* Brand */
+  --c-emerald-dark: #064e3b;
+  --c-emerald: #0d684f;
+  --c-emerald-2: #15805f;
+  --c-emerald-light: #ecf8f2;
+  --c-gold: #d7a33d;
+  --c-gold-light: #fff6df;
+
+  /* Semantic surfaces / text (light) */
+  --c-bg: #f6f8f5;
+  --c-card: #ffffff;
+  --c-card-2: #f1f5f1;
+  --c-text: #17211d;
+  --c-text-2: #647068;
+  --c-border: #dde5e0;
+
+  /* Feedback */
+  --c-success: #16875b;
+  --c-warning: #c98616;
+  --c-error: #c94747;
+
+  /* Accent role tokens (map onto brand) */
+  --c-primary: var(--c-emerald);
+  --c-primary-strong: var(--c-emerald-dark);
+  --c-on-primary: #ffffff;
+  --c-accent: var(--c-gold);
+  --c-ring: color-mix(in srgb, var(--c-emerald) 45%, transparent);
+
+  /* Radii */
+  --r-card: 22px;
+  --r-input: 14px;
+  --r-pill: 999px;
+
+  /* Elevation (subtle only) */
+  --shadow-sm: 0 1px 2px rgba(20, 40, 30, 0.05), 0 1px 3px rgba(20, 40, 30, 0.04);
+  --shadow-md: 0 4px 14px rgba(20, 40, 30, 0.07);
+  --shadow-lg: 0 12px 32px rgba(20, 40, 30, 0.1);
+
+  /* Fonts */
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-head: 'Lora', Georgia, serif;
+
+  /* Effective safe-area insets. env() collapses to 0 in embedded/preview
+     viewports (no real inset reported), which lets content slide under the
+     status bar / Dynamic Island. max() guarantees a minimum top inset on such
+     viewports while still deferring to the larger device-reported value on real
+     notch / Dynamic Island hardware. Centralized here so every Screen/header
+     that reads --safe-top gets the fix without per-screen padding. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: max(env(safe-area-inset-top, 0px), 20px);
+}
+
+.dark {
+  --c-emerald-light: #10241c;
+  --c-bg: #0b1512;
+  --c-card: #12211b;
+  --c-card-2: #17281f;
+  --c-text: #eef3ef;
+  --c-text-2: #9fb0a6;
+  --c-border: #24382e;
+
+  --c-primary: #1a9670;
+  --c-primary-strong: #0d684f;
+  --c-on-primary: #f2fbf7;
+  --c-gold: #e2b455;
+  --c-gold-light: #2a2413;
+  --c-success: #34a878;
+  --c-warning: #dca24a;
+  --c-error: #e06d6d;
+  --c-ring: color-mix(in srgb, #1a9670 55%, transparent);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.5);
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-card: var(--c-card);
+  --color-card2: var(--c-card-2);
+  --color-ink: var(--c-text);
+  --color-ink2: var(--c-text-2);
+  --color-line: var(--c-border);
+  --color-primary: var(--c-primary);
+  --color-primary-strong: var(--c-primary-strong);
+  --color-onprimary: var(--c-on-primary);
+  --color-emerald: var(--c-emerald);
+  --color-emeraldd: var(--c-emerald-dark);
+  --color-emerald2: var(--c-emerald-2);
+  --color-emeraldl: var(--c-emerald-light);
+  --color-gold: var(--c-gold);
+  --color-goldl: var(--c-gold-light);
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+  --color-error: var(--c-error);
+  --radius-card: var(--r-card);
+  --radius-input: var(--r-input);
+  --font-body: var(--font-body);
+  --font-head: var(--font-head);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    background: var(--c-bg);
+    color: var(--c-text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-head);
+    color: var(--c-text);
+  }
+  button { font-family: inherit; }
+  :focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection { background: color-mix(in srgb, var(--c-primary) 25%, transparent); }
+}
+
+@layer utilities {
+  .font-head { font-family: var(--font-head); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .press { transition: transform 140ms ease, background-color 160ms ease, box-shadow 160ms ease; }
+  .press:active { transform: scale(0.97); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@keyframes cmi-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes cmi-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes cmi-scale-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes cmi-shimmer { 100% { transform: translateX(100%); } }
+@keyframes cmi-splash-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+.anim-fade-up { animation: cmi-fade-up 320ms ease both; }
+.anim-sheet-up { animation: cmi-sheet-up 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-scale-in { animation: cmi-scale-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-splash-in { animation: cmi-splash-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
