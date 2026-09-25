@@ -1,12 +1,28 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CalendarDays, Cake, ChevronRight, Landmark, Search, Star, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocale } from '../../contexts/LocaleContext';
-import { members } from '../../data/members';
 import { events, news } from '../../data/content';
-import { Avatar, Card, SectionHeader, StatusChip } from '../../components/ui/primitives';
+import { Avatar, Card, SectionHeader, StatusChip, Skeleton } from '../../components/ui/primitives';
 import { EventCard, MemberRow, NewsCard } from '../../components/patterns/cards';
 import { IconButton } from '../../components/ui/Button';
+import { ErrorState } from '../../components/ui/states';
+import { getMembers } from '../../services/memberService';
+import type { Member } from '../../data/types';
+
+function getDayValue(value: string | number | null | undefined): number {
+  if (value == null) return 0;
+  const stringValue = String(value).trim();
+  if (!stringValue) return 0;
+  const match = stringValue.match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function getUpcomingDateLabel(month: number, day: number): string {
+  const monthLabel = new Date(2000, month - 1, 1).toLocaleString('en-US', { month: 'short' });
+  return `${monthLabel} ${day}`;
+}
 
 export function Home() {
   const { t } = useLocale();
@@ -16,11 +32,92 @@ export function Home() {
   const greetKey = hour < 12 ? 'home.goodMorning' : hour < 17 ? 'home.goodAfternoon' : 'home.goodEvening';
   const name = user?.name ?? 'Fr. John';
   const dateStr = new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const birthdays = [...members].sort((a, b) => a.birthMonth - b.birthMonth).slice(0, 6);
-  const feasts = [...members].sort((a, b) => a.feastMonth - b.feastMonth).slice(0, 5);
+  useEffect(() => {
+    let active = true;
+
+    async function loadMembers() {
+      try {
+        setLoading(true);
+        setError(null);
+        const nextMembers = await getMembers();
+        if (!active) return;
+        setMembers(nextMembers);
+      } catch (err) {
+        if (!active) return;
+        setMembers([]);
+        setError(err instanceof Error ? err.message : 'Unable to load member data.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadMembers();
+    return () => { active = false; };
+  }, []);
+
+  const birthdays = useMemo(() => {
+    const today = new Date();
+    const todayMonth = today.getMonth() + 1;
+    const todayDay = today.getDate();
+
+    return [...members]
+      .filter((member) => member.birthMonth > 0 && member.birthday)
+      .map((member) => {
+        const day = getDayValue(member.birthday);
+        const month = member.birthMonth;
+        const upcomingDate = new Date(today.getFullYear(), month - 1, day);
+        const sortMonth = upcomingDate.getMonth() + 1;
+        const sortDay = upcomingDate.getDate();
+
+        const isPast = sortMonth < todayMonth || (sortMonth === todayMonth && sortDay < todayDay);
+        const normalizedDate = isPast ? new Date(today.getFullYear() + 1, month - 1, day) : upcomingDate;
+
+        return {
+          member,
+          sortDate: normalizedDate,
+          label: getUpcomingDateLabel(month, day),
+        };
+      })
+      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+      .slice(0, 6)
+      .map(({ member, label }) => ({ ...member, birthday: label }));
+  }, [members]);
+
+  const feasts = useMemo(() => {
+    const today = new Date();
+    const todayMonth = today.getMonth() + 1;
+    const todayDay = today.getDate();
+
+    return [...members]
+      .filter((member) => Number(member.feastMonth ?? 0) > 0 && getDayValue(member.feastDay) > 0)
+      .map((member) => {
+        const month = Number(member.feastMonth ?? 0);
+        const day = getDayValue(member.feastDay);
+        const upcomingDate = new Date(today.getFullYear(), month - 1, day);
+        const isPast = upcomingDate.getMonth() + 1 < todayMonth || (upcomingDate.getMonth() + 1 === todayMonth && upcomingDate.getDate() < todayDay);
+        const normalizedDate = isPast ? new Date(today.getFullYear() + 1, month - 1, day) : upcomingDate;
+
+        return {
+          member,
+          sortDate: normalizedDate,
+          label: getUpcomingDateLabel(month, day),
+        };
+      })
+      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+      .slice(0, 5)
+      .map(({ member, label }) => ({
+        ...member,
+        feastName: member.feastName || 'Feast day',
+        feastDay: label,
+      }));
+  }, [members]);
+
   const upcoming = events.filter((e) => e.category !== 'birthday').slice(0, 4);
-  const recent = members.slice(10, 14);
+  const recent = members.slice(0, 4);
 
   const quick = [
     { label: t('home.findMember'), icon: Search, to: '/members' },
@@ -72,33 +169,64 @@ export function Home() {
         {/* Birthdays */}
         <section>
           <SectionHeader title={t('home.birthdays')} action={t('common.viewAll')} onAction={() => nav('/events')} />
-          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 md:-mx-6 md:px-6">
-            {birthdays.map((m) => (
-              <button key={m.id} onClick={() => nav(`/members/${m.id}`)}
-                className="press flex w-[130px] shrink-0 flex-col items-center gap-2 rounded-[18px] border border-line bg-card p-3.5 text-center active:bg-card2">
-                <Avatar name={m.name} size={56} />
-                <p className="line-clamp-2 text-[13px] font-medium leading-tight text-ink">{m.name.replace('Fr. ', '')}</p>
-                <span className="inline-flex items-center gap-1 text-[12px] text-gold"><Cake size={13} /> {m.birthday}</span>
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 md:-mx-6 md:px-6">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="w-[130px] shrink-0 rounded-[18px] border border-line bg-card p-3.5">
+                  <Skeleton className="mx-auto h-[56px] w-[56px] rounded-full" />
+                  <Skeleton className="mx-auto mt-2 h-3.5 w-20" />
+                  <Skeleton className="mx-auto mt-2 h-3 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <ErrorState title="Unable to load birthdays" body={error} />
+          ) : (
+            <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 md:-mx-6 md:px-6">
+              {birthdays.map((m) => (
+                <button key={m.id} onClick={() => nav(`/members/${m.id}`)}
+                  className="press flex w-[130px] shrink-0 flex-col items-center gap-2 rounded-[18px] border border-line bg-card p-3.5 text-center active:bg-card2">
+                  <Avatar name={m.name} size={56} />
+                  <p className="line-clamp-2 text-[13px] font-medium leading-tight text-ink">{m.name.replace('Fr. ', '')}</p>
+                  <span className="inline-flex items-center gap-1 text-[12px] text-gold"><Cake size={13} /> {m.birthday}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Feast days */}
         <section>
           <SectionHeader title={t('home.feastDays')} />
-          <div className="space-y-2">
-            {feasts.slice(0, 3).map((m) => (
-              <Card key={m.id} onClick={() => nav(`/members/${m.id}`)} className="flex items-center gap-3 p-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-goldl text-gold"><Star size={19} /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-medium text-ink">{m.feastName}</p>
-                  <p className="truncate text-[13px] text-ink2">{m.name}</p>
+          {loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="flex items-center gap-3 rounded-[var(--r-card)] border border-line bg-card p-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-4 w-10" />
                 </div>
-                <span className="text-[13px] font-medium text-ink2">{m.feastDay}</span>
-              </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : error ? (
+            <ErrorState title="Unable to load feast days" body={error} />
+          ) : (
+            <div className="space-y-2">
+              {feasts.slice(0, 3).map((m) => (
+                <Card key={m.id} onClick={() => nav(`/members/${m.id}`)} className="flex items-center gap-3 p-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-goldl text-gold"><Star size={19} /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-medium text-ink">{m.feastName}</p>
+                    <p className="truncate text-[13px] text-ink2">{m.name}</p>
+                  </div>
+                  <span className="text-[13px] font-medium text-ink2">{m.feastDay}</span>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Upcoming events */}

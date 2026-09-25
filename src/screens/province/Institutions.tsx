@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Building2, LayoutGrid, List, MapPin, MessageCircle, Phone, Users } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
 import { SearchField } from '../../components/ui/Input';
-import { FilterChip, Card } from '../../components/ui/primitives';
+import { FilterChip, Card, Skeleton } from '../../components/ui/primitives';
 import { InstitutionCard } from '../../components/patterns/cards';
 import { Button } from '../../components/ui/Button';
-import { EmptyState } from '../../components/ui/states';
-import { institutions, zones } from '../../data/content';
+import { EmptyState, ErrorState } from '../../components/ui/states';
 import { useLocale } from '../../contexts/LocaleContext';
 import { whatsappLink } from '../../lib/contact';
-import type { InstitutionCategory } from '../../data/types';
+import { getInstitutionById, getInstitutions, getMembersByInstitution } from '../../services/memberService';
+import type { Institution, InstitutionCategory } from '../../data/types';
+
+const zones = ['Calicut', 'Wayanad', 'Malabar', 'Nilgiris', 'Mission'];
 
 const cats: Array<{ id: InstitutionCategory; key: any }> = [
   { id: 'house', key: 'inst.cat.house' }, { id: 'education', key: 'inst.cat.education' },
@@ -24,13 +26,39 @@ export function Institutions() {
   const [cat, setCat] = useState<InstitutionCategory | null>(null);
   const [zone, setZone] = useState<string | null>(null);
   const [list, setList] = useState(false);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadInstitutions() {
+      try {
+        setLoading(true);
+        setError(null);
+        const records = await getInstitutions();
+        if (!active) return;
+        setInstitutions(records);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Unable to load institutions.');
+        setInstitutions([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadInstitutions();
+    return () => { active = false; };
+  }, []);
 
   const results = useMemo(() => institutions.filter((i) => {
     if (query && !`${i.name} ${i.address} ${i.zone}`.toLowerCase().includes(query.toLowerCase())) return false;
     if (cat && i.category !== cat) return false;
     if (zone && i.zone !== zone) return false;
     return true;
-  }), [query, cat, zone]);
+  }), [query, cat, zone, institutions]);
 
   return (
     <Screen title={t('inst.title')} right={
@@ -46,13 +74,25 @@ export function Institutions() {
         {zones.map((z) => <FilterChip key={z} active={zone === z} onClick={() => setZone(zone === z ? null : z)}>{z}</FilterChip>)}
       </div>
 
-      <p className="mt-4 text-[13px] text-ink2">{results.length} {t('common.results')}</p>
-      {results.length === 0 ? (
-        <EmptyState icon={<Building2 size={26} />} title="No institutions found" body={t('members.emptyHelp')} />
-      ) : list ? (
-        <div className="mt-2 space-y-2.5">{results.map((i) => <InstitutionCard key={i.id} inst={i} list />)}</div>
+      {loading ? (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 w-full rounded-[var(--r-card)]" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="mt-4"><ErrorState title="Unable to load institutions" body={error} onRetry={() => { void getInstitutions().then(setInstitutions).catch(() => setError('Unable to load institutions.')); }} /></div>
       ) : (
-        <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3">{results.map((i) => <InstitutionCard key={i.id} inst={i} />)}</div>
+        <>
+          <p className="mt-4 text-[13px] text-ink2">{results.length} {t('common.results')}</p>
+          {results.length === 0 ? (
+            <EmptyState icon={<Building2 size={26} />} title="No institutions found" body={t('members.emptyHelp')} />
+          ) : list ? (
+            <div className="mt-2 space-y-2.5">{results.map((i) => <InstitutionCard key={i.id} inst={i} list />)}</div>
+          ) : (
+            <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-3">{results.map((i) => <InstitutionCard key={i.id} inst={i} />)}</div>
+          )}
+        </>
       )}
     </Screen>
   );
@@ -63,8 +103,61 @@ const instImg = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?au
 export function InstitutionProfile() {
   const { t } = useLocale();
   const { id } = useParams();
-  const inst = institutions.find((i) => i.id === id);
+  const [inst, setInst] = useState<Institution | null>(null);
+  const [members, setMembers] = useState<Array<{ memberId: string; name: string; position: string | null }>>([]);
+  const [loading, setLoading] = useState(Boolean(id));
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) {
+      setInst(null);
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+
+    const institutionId = id;
+    let active = true;
+
+    async function loadInstitution() {
+      try {
+        setLoading(true);
+        setError(null);
+        const [institution, institutionMembers] = await Promise.all([
+          getInstitutionById(institutionId),
+          getMembersByInstitution(institutionId),
+        ]);
+        if (!active) return;
+        setInst(institution);
+        setMembers(institutionMembers);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Unable to load institution.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadInstitution();
+    return () => { active = false; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Screen back title="Institution">
+        <div className="space-y-4 pt-2">
+          <Skeleton className="h-48 w-full rounded-[var(--r-card)]" />
+          <Skeleton className="h-7 w-2/3" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-20 w-full rounded-[var(--r-card)]" />
+        </div>
+      </Screen>
+    );
+  }
+
+  if (error) return <Screen title={t('inst.title')} back><ErrorState title="Unable to load institution" body={error} /></Screen>;
   if (!inst) return <Screen title={t('inst.title')} back><EmptyState title="Not found" /></Screen>;
+
   return (
     <Screen back title={inst.name}>
       <img src={inst.photo || instImg} alt="" className="h-48 w-full rounded-[var(--r-card)] object-cover" />
@@ -89,6 +182,20 @@ export function InstitutionProfile() {
       <div className="flex flex-wrap gap-2">
         {inst.apostolates.map((a) => <span key={a} className="rounded-[var(--r-pill)] bg-emeraldl px-3 py-1.5 text-[13px] font-medium text-emerald dark:text-ink">{a}</span>)}
       </div>
+
+      {members.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-ink2">Members</h2>
+          <div className="space-y-2.5">
+            {members.map((member) => (
+              <div key={member.memberId} className="rounded-[var(--r-card)] border border-line bg-card p-3">
+                <p className="text-[15px] font-medium text-ink">{member.name}</p>
+                <p className="mt-1 text-[13px] text-ink2">Position: {member.position || 'Not specified'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Screen>
   );
 }
