@@ -67,11 +67,16 @@ interface DbMemberRow {
   feast_month: number | null;
   feast_day: number | null;
   feast_name: string | null;
-  diocese: string | null;
-  parish: string | null;
+  diocese: string | { code?: string | null } | null;
+  parish: string | { name?: string | null } | null;
   profession_date: string | null;
   ordination_date: string | null;
   photo_url: string | null;
+  address: string | null;
+  diocese_id: string | null;
+  parish_id: string | null;
+  zone_id: string | null;
+  zone: string | { name?: string | null } | null;
 }
 
 interface DbAssignmentRow {
@@ -110,6 +115,29 @@ function monthFromDate(value: string | null) {
   return Number.isNaN(month) ? 0 : month;
 }
 
+function formatFeastDate(month: number | null | undefined, day: number | null | undefined): string {
+  if (!month || !day) {
+    return '';
+  }
+
+  const next = new Date(2000, month - 1, day);
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  }).format(next);
+}
+
+function readLookupName(value: string | { name?: string | null } | null | undefined): string {
+  if (typeof value === 'string') return value;
+  return value?.name ?? '';
+}
+
+function readLookupCode(value: string | { code?: string | null } | null | undefined): string {
+  if (typeof value === 'string') return value;
+  return value?.code ?? '';
+}
+
 function mapMember(
   row: DbMemberRow,
   institution: DbInstitutionRow | null,
@@ -121,21 +149,18 @@ function mapMember(
     role: row.role,
     house: row.house ?? '',
     institution: institution?.name,
-
-    // Temporary compatibility mapping because the current
-    // members table does not yet contain a zone column.
-    zone: row.country === 'Tanzania' ? 'Mission' : 'Calicut',
-
+    address: row.address ?? '',
+    zone: readLookupName(row.zone) as Member['zone'],
     country: row.country ?? '',
     phone: row.phone ?? '',
     email: row.email ?? '',
     birthday: row.birthday ?? '',
     birthMonth: monthFromDate(row.birthday),
-    feastDay: row.feast_day == null ? '' : String(row.feast_day),
+    feastDay: formatFeastDate(row.feast_month ?? 0, row.feast_day ?? 0),
     feastMonth: row.feast_month ?? 0,
     feastName: row.feast_name ?? undefined,
-    diocese: row.diocese ?? '',
-    parish: row.parish ?? '',
+    diocese: readLookupCode(row.diocese),
+    parish: readLookupName(row.parish),
     professionDate: row.profession_date ?? '',
     ordinationDate: row.ordination_date ?? '',
     photo: row.photo_url ?? undefined,
@@ -200,10 +225,16 @@ export function AuthProvider({
             phone,
             email,
             birthday,
+            feast_month,
             feast_day,
             feast_name,
-            diocese,
-            parish,
+            address,
+            diocese_id,
+            parish_id,
+            zone_id,
+            diocese:dioceses ( code ),
+            parish:parishes ( name ),
+            zone:zones ( name ),
             profession_date,
             ordination_date,
             photo_url
@@ -359,10 +390,16 @@ export function AuthProvider({
             phone,
             email,
             birthday,
+            feast_month,
             feast_day,
             feast_name,
-            diocese,
-            parish,
+            address,
+            diocese_id,
+            parish_id,
+            zone_id,
+            diocese:dioceses ( code ),
+            parish:parishes ( name ),
+            zone:zones ( name ),
             profession_date,
             ordination_date,
             photo_url

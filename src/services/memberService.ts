@@ -43,7 +43,7 @@ interface MemberRow {
   role: string;
   house: string | null;
   institution_id: string | null;
-  zone: string | null;
+  zone: string | { name?: string | null } | null;
   country: string | null;
   phone: string | null;
   email: string | null;
@@ -51,8 +51,8 @@ interface MemberRow {
   feast_month: number | null;
   feast_day: number | null;
   feast_name: string | null;
-  diocese: string | null;
-  parish: string | null;
+  diocese: string | { code?: string | null } | null;
+  parish: string | { name?: string | null } | null;
   profession_date: string | null;
   ordination_date: string | null;
   photo_url: string | null;
@@ -99,6 +99,29 @@ function monthFromDate(value: string | null | undefined): number {
   return Number.isNaN(month) ? 0 : month;
 }
 
+function formatFeastDate(month: number | null | undefined, day: number | null | undefined): string {
+  if (!month || !day) {
+    return '';
+  }
+
+  const next = new Date(2000, month - 1, day);
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  }).format(next);
+}
+
+function readLookupName(value: string | { name?: string | null } | null | undefined): string {
+  if (typeof value === 'string') return value;
+  return value?.name ?? '';
+}
+
+function readLookupCode(value: string | { code?: string | null } | null | undefined): string {
+  if (typeof value === 'string') return value;
+  return value?.code ?? '';
+}
+
 function mapInstitutionRow(row: InstitutionRow): Institution {
   return {
     id: row.id,
@@ -118,8 +141,8 @@ function mapInstitutionRow(row: InstitutionRow): Institution {
 
 function mapMemberRow(row: MemberRow): Member {
   const birthday = row.birthday ?? '';
-  const feastDay = row.feast_day ?? 0;
   const feastMonth = row.feast_month ?? 0;
+  const feastDay = row.feast_day ?? 0;
 
   return {
     id: row.id,
@@ -127,17 +150,18 @@ function mapMemberRow(row: MemberRow): Member {
     role: row.role,
     house: row.house ?? '',
     institution: undefined,
-    zone: (row.zone ?? 'Calicut') as Member['zone'],
+    address: row.address ?? '',
+    zone: readLookupName(row.zone) as Member['zone'],
     country: row.country ?? '',
     phone: row.phone ?? '',
     email: row.email ?? '',
     birthday: formatDateDisplay(birthday),
     birthMonth: monthFromDate(birthday),
-    feastDay: feastDay === 0 ? '' : String(feastDay),
+    feastDay: formatFeastDate(feastMonth, feastDay),
     feastMonth,
-    feastName: undefined,
-    diocese: row.diocese ?? '',
-    parish: row.parish ?? '',
+    feastName: row.feast_name ?? undefined,
+    diocese: readLookupCode(row.diocese),
+    parish: readLookupName(row.parish),
     professionDate: row.profession_date ?? '',
     ordinationDate: row.ordination_date ?? '',
     photo: row.photo_url ?? undefined,
@@ -178,7 +202,32 @@ function mapInstitutionLink(record: MemberInstitutionRecord): {
 export async function getMembers(): Promise<Member[]> {
   const { data, error } = await supabase
     .from('members')
-    .select('*')
+    .select(`
+      id,
+      name,
+      role,
+      house,
+      institution_id,
+      country,
+      phone,
+      email,
+      birthday,
+      feast_month,
+      feast_day,
+      feast_name,
+      diocese_id,
+      parish_id,
+      address,
+      zone_id,
+      photo_url,
+      member_category_id,
+      recordical_name,
+      profession_date,
+      ordination_date,
+      diocese:dioceses ( code ),
+      parish:parishes ( name ),
+      zone:zones ( name )
+    `)
     .order('name', { ascending: true });
 
   if (error) {
@@ -199,7 +248,32 @@ export async function searchMembers(query: string): Promise<Member[]> {
 
   const { data, error } = await supabase
     .from('members')
-    .select('*')
+    .select(`
+      id,
+      name,
+      role,
+      house,
+      institution_id,
+      country,
+      phone,
+      email,
+      birthday,
+      feast_month,
+      feast_day,
+      feast_name,
+      diocese_id,
+      parish_id,
+      address,
+      zone_id,
+      photo_url,
+      member_category_id,
+      recordical_name,
+      profession_date,
+      ordination_date,
+      diocese:dioceses ( code ),
+      parish:parishes ( name ),
+      zone:zones ( name )
+    `)
     .or(
       `name.ilike.${searchTerm},recordical_name.ilike.${searchTerm},phone.ilike.${searchTerm},email.ilike.${searchTerm},address.ilike.${searchTerm}`,
     )
@@ -215,7 +289,32 @@ export async function searchMembers(query: string): Promise<Member[]> {
 export async function getMemberById(id: string): Promise<MemberWithInstitutions | null> {
   const { data, error } = await supabase
     .from('members')
-    .select('*')
+    .select(`
+      id,
+      name,
+      role,
+      house,
+      institution_id,
+      country,
+      phone,
+      email,
+      birthday,
+      feast_month,
+      feast_day,
+      feast_name,
+      diocese_id,
+      parish_id,
+      address,
+      zone_id,
+      photo_url,
+      member_category_id,
+      recordical_name,
+      profession_date,
+      ordination_date,
+      diocese:dioceses ( code ),
+      parish:parishes ( name ),
+      zone:zones ( name )
+    `)
     .eq('id', id)
     .maybeSingle();
 
@@ -293,34 +392,62 @@ export async function getMemberInstitutions(memberId: string): Promise<MemberWit
 }
 
 export async function getMembersByInstitution(institutionId: string): Promise<Array<{ memberId: string; name: string; position: string | null }>> {
-  const { data, error } = await supabase
+  const { data: relationships, error: relationshipsError } = await supabase
     .from('member_institutions')
     .select(`
       id,
       member_id,
-      position,
-      members:members (
-        id,
-        name,
-        role
-      )
+      institution_id,
+      position
     `)
     .eq('institution_id', institutionId)
     .order('position', { ascending: true, nullsFirst: false });
 
-  if (error) {
-    throw error;
+  if (relationshipsError) {
+    throw relationshipsError;
   }
 
-  return (data ?? []).map((row) => {
-    const member = Array.isArray((row as { members?: unknown[] }).members)
-      ? ((row as { members?: Array<{ id?: string; name?: string }> })?.members?.[0] ?? null)
-      : null;
+  const rows = (relationships ?? []) as Array<{ id: string; member_id: string; institution_id: string; position: string | null }>;
+
+  if (!rows.length) {
+    return [];
+  }
+
+  const memberIds = rows
+    .map((relationship) => relationship.member_id)
+    .filter((memberId): memberId is string => Boolean(memberId));
+
+  if (!memberIds.length) {
+    return [];
+  }
+
+  const { data: members, error: membersError } = await supabase
+    .from('members')
+    .select(`
+      id,
+      name,
+      recordical_name,
+      role,
+      house,
+      photo_url
+    `)
+    .in('id', memberIds);
+
+  if (membersError) {
+    throw membersError;
+  }
+
+  const memberById = new Map(
+    (members ?? []).map((member) => [member.id, member]),
+  );
+
+  return rows.map((relationship) => {
+    const member = memberById.get(relationship.member_id);
 
     return {
-      memberId: member?.id ?? '',
+      memberId: relationship.member_id,
       name: member?.name ?? 'Unknown member',
-      position: (row as { position?: string | null }).position ?? null,
+      position: relationship.position ?? null,
     };
   });
 }

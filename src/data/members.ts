@@ -59,6 +59,7 @@ export const members: Member[] = Array.from({ length: 36 }, (_, i) => {
     role,
     house,
     institution: inst,
+    address: `${pick(parishes, i)} Church, ${zone}, India`,
     zone,
     country: i % 9 === 0 ? 'Germany' : i % 7 === 0 ? 'Tanzania' : 'India',
     phone: `+91 98${470 + (i % 500)} ${100000 + i * 137}`.slice(0, 17),

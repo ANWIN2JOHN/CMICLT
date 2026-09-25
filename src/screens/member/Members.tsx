@@ -54,7 +54,7 @@ export function Members() {
     const q = query.trim().toLowerCase();
     return members.filter((m) => {
       if (q && !`${m.name} ${m.role} ${m.house} ${m.institution ?? ''} ${m.zone} ${m.country}`.toLowerCase().includes(q)) return false;
-      if (filters.zone.length && !filters.zone.includes(m.zone)) return false;
+      if (filters.zone.length && !filters.zone.includes(m.zone as Zone)) return false;
       if (filters.role.length && !filters.role.some((r) => m.role.includes(r))) return false;
       if (filters.birthMonth.length && !filters.birthMonth.includes(m.birthMonth)) return false;
       return true;

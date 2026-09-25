@@ -13,7 +13,8 @@ export interface Member {
   role: string;
   house: string;
   institution?: string;
-  zone: Zone;
+  address: string;
+  zone: Zone | string;
   country: string;
   phone: string;
   email: string;

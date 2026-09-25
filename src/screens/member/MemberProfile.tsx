@@ -80,9 +80,11 @@ export function MemberProfile() {
         <h1 className="mt-4 font-head text-[24px] font-semibold text-ink">{member.name}</h1>
         <p className="mt-1 text-[15px] text-primary">{member.role}</p>
         <p className="mt-0.5 text-[14px] text-ink2">{member.house}</p>
-        <span className="mt-2 inline-flex items-center gap-1 rounded-[var(--r-pill)] bg-emeraldl px-3 py-1 text-[13px] font-medium text-emerald dark:text-ink">
-          <MapPin size={13} /> {member.zone} · {member.country}
-        </span>
+        {member.address ? (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-[var(--r-pill)] bg-emeraldl px-3 py-1 text-[13px] font-medium text-emerald dark:text-ink">
+            <MapPin size={13} /> {member.address}
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
