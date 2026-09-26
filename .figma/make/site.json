@@ -1,5 +1,9 @@
 {
+  "title": "CMI | ST.THOMAS PROVINCE",
   "description": "A mobile and tablet app delivering secure, accessible membership experiences with bilingual support and adaptive layouts optimized for touch interaction.",
+  "icons": {
+    "icon": "/src/assets/cmi-emblem.png"
+  },
   "robots": {
     "index": false
   },
