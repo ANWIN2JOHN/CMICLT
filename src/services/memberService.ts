@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Institution, Member } from '../data/types';
+import type { Assignment, HouseListEntry, Institution, Member, MemberInstitutionAssignment } from '../data/types';
 
 export interface MemberInstitutionRecord {
   id: string;
@@ -9,6 +9,8 @@ export interface MemberInstitutionRecord {
   institution?: {
     id: string;
     name: string;
+    entity_type?: string | null;
+    parent_institution_id?: string | null;
     category: string | null;
     zone: string | null;
     address: string | null;
@@ -62,6 +64,7 @@ interface MemberRow {
   parish_id: string | null;
   address: string | null;
   zone_id: string | null;
+  archived_at?: string | null;
 }
 
 interface InstitutionRow {
@@ -76,6 +79,8 @@ interface InstitutionRow {
   residents: number | null;
   photo_url: string | null;
   head_member_id: string | null;
+  entity_type?: string | null;
+  parent_institution_id?: string | null;
 }
 
 function formatDateDisplay(value: string | null | undefined): string {
@@ -136,6 +141,8 @@ function mapInstitutionRow(row: InstitutionRow): Institution {
     head: '',
     residents: row.residents ?? 0,
     photo: row.photo_url ?? undefined,
+    entityType: row.entity_type ?? undefined,
+    parentInstitutionId: row.parent_institution_id ?? null,
   };
 }
 
@@ -224,10 +231,12 @@ export async function getMembers(): Promise<Member[]> {
       recordical_name,
       profession_date,
       ordination_date,
+      archived_at,
       diocese:dioceses ( code ),
       parish:parishes ( name ),
       zone:zones ( name )
     `)
+    .is('archived_at', null)
     .order('name', { ascending: true });
 
   if (error) {
@@ -270,10 +279,12 @@ export async function searchMembers(query: string): Promise<Member[]> {
       recordical_name,
       profession_date,
       ordination_date,
+      archived_at,
       diocese:dioceses ( code ),
       parish:parishes ( name ),
       zone:zones ( name )
     `)
+    .is('archived_at', null)
     .or(
       `name.ilike.${searchTerm},recordical_name.ilike.${searchTerm},phone.ilike.${searchTerm},email.ilike.${searchTerm},address.ilike.${searchTerm}`,
     )
@@ -311,6 +322,7 @@ export async function getMemberById(id: string): Promise<MemberWithInstitutions 
       recordical_name,
       profession_date,
       ordination_date,
+      archived_at,
       diocese:dioceses ( code ),
       parish:parishes ( name ),
       zone:zones ( name )
@@ -327,15 +339,55 @@ export async function getMemberById(id: string): Promise<MemberWithInstitutions 
   }
 
   const member = mapMemberRow(data as MemberRow);
-  const institutions = await getMemberInstitutions(id);
+  const [institutions, assignments] = await Promise.all([
+    getMemberAssignments(id),
+    getMemberAssignmentHistory(id),
+  ]);
 
   return {
     ...member,
-    institutions,
+    institutions: institutions.map((assignment) => ({
+      id: assignment.institution?.id ?? assignment.institution_id,
+      name: assignment.institution?.name ?? '',
+      category: assignment.institution?.category ?? null,
+      zone: assignment.institution?.zone ?? null,
+      address: assignment.institution?.address ?? null,
+      phone: assignment.institution?.phone ?? null,
+      email: assignment.institution?.email ?? null,
+      established_year: assignment.institution?.established_year ?? null,
+      residents: assignment.institution?.residents ?? null,
+      photo: assignment.institution?.photo_url ?? undefined,
+      position: assignment.position ?? null,
+    })),
+    assignments,
   };
 }
 
-export async function getMemberInstitutions(memberId: string): Promise<MemberWithInstitutions['institutions']> {
+export async function getMemberAssignmentHistory(memberId: string): Promise<Assignment[]> {
+  const { data, error } = await supabase
+    .from('member_assignments')
+    .select(`
+      role,
+      place,
+      from_date,
+      to_date
+    `)
+    .eq('member_id', memberId)
+    .order('from_date', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    role: row.role ?? '',
+    place: row.place ?? '',
+    from: row.from_date ? row.from_date.slice(0, 4) : '',
+    to: row.to_date ? row.to_date.slice(0, 4) : null,
+  }));
+}
+
+export async function getMemberAssignments(memberId: string): Promise<MemberInstitutionAssignment[]> {
   const { data, error } = await supabase
     .from('member_institutions')
     .select(`
@@ -346,6 +398,8 @@ export async function getMemberInstitutions(memberId: string): Promise<MemberWit
       institution:institutions (
         id,
         name,
+        entity_type,
+        parent_institution_id,
         category,
         zone,
         address,
@@ -368,27 +422,72 @@ export async function getMemberInstitutions(memberId: string): Promise<MemberWit
     member_id: string;
     institution_id: string;
     position: string | null;
-    institution: {
+    institution?: Array<{
       id: string;
       name: string;
-      category: string | null;
-      zone: string | null;
-      address: string | null;
-      phone: string | null;
-      email: string | null;
-      established_year: number | null;
-      residents: number | null;
-      photo_url: string | null;
-    } | null;
+      entity_type?: string | null;
+      parent_institution_id?: string | null;
+      category?: string | null;
+      zone?: string | null;
+      address?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      established_year?: number | null;
+      residents?: number | null;
+      photo_url?: string | null;
+    }> | null;
   }>;
 
   return records
-    .map((record) => mapInstitutionLink(record))
+    .map((record) => {
+      const institution = Array.isArray(record.institution) ? record.institution[0] ?? null : record.institution ?? null;
+
+      return {
+        id: record.id,
+        member_id: record.member_id,
+        institution_id: record.institution_id,
+        position: record.position ?? null,
+        institution: institution
+          ? {
+              id: institution.id,
+              name: institution.name,
+              entity_type: institution.entity_type ?? null,
+              parent_institution_id: institution.parent_institution_id ?? null,
+              category: institution.category ?? null,
+              zone: institution.zone ?? null,
+              address: institution.address ?? null,
+              phone: institution.phone ?? null,
+              email: institution.email ?? null,
+              established_year: institution.established_year ?? null,
+              residents: institution.residents ?? null,
+              photo_url: institution.photo_url ?? null,
+            }
+          : null,
+      } satisfies MemberInstitutionAssignment;
+    })
     .sort((a, b) => {
-      const aName = a.name.toLowerCase();
-      const bName = b.name.toLowerCase();
+      const aName = (a.institution?.name ?? '').toLowerCase();
+      const bName = (b.institution?.name ?? '').toLowerCase();
       return aName.localeCompare(bName);
     });
+}
+
+export async function getMemberInstitutions(memberId: string): Promise<MemberWithInstitutions['institutions']> {
+  const assignments = await getMemberAssignments(memberId);
+
+  return assignments.map((assignment) => ({
+    id: assignment.institution?.id ?? assignment.institution_id,
+    name: assignment.institution?.name ?? '',
+    category: assignment.institution?.category ?? null,
+    zone: assignment.institution?.zone ?? null,
+    address: assignment.institution?.address ?? null,
+    phone: assignment.institution?.phone ?? null,
+    email: assignment.institution?.email ?? null,
+    established_year: assignment.institution?.established_year ?? null,
+    residents: assignment.institution?.residents ?? null,
+    photo: assignment.institution?.photo_url ?? undefined,
+    position: assignment.position ?? null,
+  }));
 }
 
 export async function getMembersByInstitution(institutionId: string): Promise<Array<{ memberId: string; name: string; position: string | null }>> {
@@ -431,7 +530,8 @@ export async function getMembersByInstitution(institutionId: string): Promise<Ar
       house,
       photo_url
     `)
-    .in('id', memberIds);
+    .in('id', memberIds)
+    .is('archived_at', null);
 
   if (membersError) {
     throw membersError;
@@ -482,3 +582,77 @@ export async function getInstitutionById(id: string): Promise<Institution | null
 
   return mapInstitutionRow(data as InstitutionRow);
 }
+
+export async function getChildInstitutions(parentInstitutionId: string): Promise<Institution[]> {
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('*')
+    .eq('parent_institution_id', parentInstitutionId)
+    .order('name', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => mapInstitutionRow(row as InstitutionRow));
+}
+
+export async function getInstitutionMembers(institutionId: string): Promise<Array<{ memberId: string; name: string; position: string | null }>> {
+  return getMembersByInstitution(institutionId);
+}
+
+export async function getHouseList(): Promise<HouseListEntry[]> {
+  const { data, error } = await supabase
+    .from('house_list')
+    .select(`
+      id,
+      name,
+      category,
+      house,
+      institution_id,
+      role,
+      phone,
+      email,
+      address,
+      photo_url,
+      institution:institutions ( id, name )
+    `)
+    .order('name', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  const rows = (data ?? []) as unknown as Array<{
+    id: string;
+    name: string | null;
+    category: string | null;
+    house: string | null;
+    institution_id: string | null;
+    role: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    photo_url: string | null;
+    institution?: Array<{ id: string; name: string }> | null;
+  }>;
+
+  return rows.map((row) => {
+    const institution = Array.isArray(row.institution) ? row.institution[0] ?? null : row.institution ?? null;
+
+    return {
+      id: row.id,
+      name: row.name ?? '',
+      category: row.category ?? null,
+      house: row.house ?? null,
+      institution_id: row.institution_id ?? null,
+      role: row.role ?? null,
+      phone: row.phone ?? null,
+      email: row.email ?? null,
+      address: row.address ?? null,
+      photo_url: row.photo_url ?? null,
+      institution: institution ? { id: institution.id, name: institution.name } : null,
+    } satisfies HouseListEntry;
+  });
+}
+

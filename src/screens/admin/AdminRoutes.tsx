@@ -11,12 +11,12 @@ import { Avatar, Card, FilterChip, SectionHeader, StatusChip } from '../../compo
 import { TextInput, SearchField, SelectField, TextArea } from '../../components/ui/Input';
 import { BottomSheet, Dialog, useToast } from '../../components/ui/overlays';
 import { EmptyState, SuccessState } from '../../components/ui/states';
-import type { AccountStatus, Member, UserAccount, Zone } from '../../data/types';
+import type { AccountStatus, AuditEntry, Member, UserAccount, Zone } from '../../data/types';
 import { AdminDataProvider, useAdminData, type ContentItem, type ContentStatus, type ContentType } from '../../contexts/AdminDataContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { cn } from '../../lib/cn';
 import { supabase } from '../../lib/supabase';
-import { getAdminDashboardStats, getAdminAccounts, getAuditEntries } from '../../services/adminService';
+import { getAdminDashboardStats, getAdminAccounts, getAuditEntries, updateUserAccount, createAuditLog } from '../../services/adminService';
 
 export function AdminRoutes() {
   return (
@@ -195,10 +195,22 @@ function UserAccounts() {
 
   const list = accounts.filter((a) => a.status === tab && a.name.toLowerCase().includes(q.toLowerCase()));
 
-  function update(id: string, patch: Partial<UserAccount>, msg: string) {
-    setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-    setSel(null);
-    notify(msg);
+  async function update(id: string, patch: Partial<UserAccount>, msg: string) {
+    try {
+      // Persist to Supabase first
+      const updated = await updateUserAccount(id, { status: patch.status, failedAttempts: (patch as any).failedAttempts });
+      try {
+        await createAuditLog({ action: patch.status === 'active' ? 'activate' : patch.status === 'inactive' ? 'deactivate' : 'update', entity_type: 'user_account', entity_id: id, record_label: (patch as any).identifier ?? null, metadata: { status: patch.status } });
+      } catch (err: any) {
+        notify('Account updated (audit failed: ' + (err?.message ?? 'unknown') + ')');
+      }
+      // Update local state only on success
+      setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, ...(patch as any) } : a)));
+      setSel(null);
+      notify(msg);
+    } catch (err: any) {
+      notify(err?.message ?? 'Unable to update account');
+    }
   }
 
   return (
@@ -323,8 +335,8 @@ function MemberManagement() {
                 <p className="truncate text-[13px] text-ink2">{m.role} · {m.house}</p>
               </button>
               {isArch
-                ? <Button variant="text" size="md" onClick={() => { restoreMember(m.id); notify('Member restored'); }}>{t('admin.restore')}</Button>
-                : <IconButton label={t('admin.archive')} onClick={() => { archiveMember(m.id); notify('Member archived'); }}><Archive size={19} className="text-ink2" /></IconButton>}
+                ? <Button variant="text" size="md" onClick={async () => { try { await restoreMember(m.id); notify('Member restored'); try { await createAuditLog({ action: 'restore', entity_type: 'member', entity_id: m.id, record_label: m.name, metadata: { name: m.name } }); } catch (err: any) { notify('Member restored (audit failed: ' + (err?.message ?? 'unknown') + ')'); } } catch (err: any) { notify(err?.message ?? 'Unable to restore member'); } }}>{t('admin.restore')}</Button>
+                : <IconButton label={t('admin.archive')} onClick={async () => { try { await archiveMember(m.id); notify('Member archived'); try { await createAuditLog({ action: 'archive', entity_type: 'member', entity_id: m.id, record_label: m.name, metadata: { name: m.name } }); } catch (err: any) { notify('Member archived (audit failed: ' + (err?.message ?? 'unknown') + ')'); } } catch (err: any) { notify(err?.message ?? 'Unable to archive member'); } }}><Archive size={19} className="text-ink2" /></IconButton>}
             </Card>
           );
         })}
@@ -450,7 +462,7 @@ function MemberEdit() {
 
     try {
       if (isNew) {
-        const { error } = await supabase.from('members').insert({
+        const { data, error } = await supabase.from('members').insert({
           name: member.name,
           role: member.role,
           house: member.house,
@@ -465,10 +477,46 @@ function MemberEdit() {
           parish: member.parish || null,
           profession_date: member.professionDate ? new Date(member.professionDate).toISOString().slice(0, 10) : null,
           ordination_date: member.ordinationDate ? new Date(member.ordinationDate).toISOString().slice(0, 10) : null,
-        });
+        }).select('*');
 
         if (error) throw error;
-        addMember(member);
+
+        // Use the database-returned row (with real UUID) when adding to local state.
+        const returned = Array.isArray(data) ? data[0] : (data as any);
+        if (!returned) throw new Error('Failed to retrieve created member from database');
+
+        // Map Supabase row shape to application Member type using existing mapper from services
+        // Importing mapper locally would be ideal, but to avoid cross-file edits we map minimally here.
+        const createdMember: Member = {
+          id: returned.id,
+          name: returned.name,
+          role: returned.role,
+          house: returned.house ?? '',
+          institution: undefined,
+          address: returned.address ?? '',
+          zone: typeof returned.zone === 'string' ? (returned.zone as any) : (returned.zone?.name ?? '') as any,
+          country: returned.country ?? '',
+          phone: returned.phone ?? '',
+          email: returned.email ?? '',
+          birthday: returned.birthday ?? '',
+          birthMonth: returned.birthday ? (Number.isNaN(Number(returned.birthday.slice(5, 7))) ? 1 : Number(returned.birthday.slice(5, 7))) : 1,
+          feastDay: returned.feast_day ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(2000, (returned.feast_month ?? 1) - 1, returned.feast_day ?? 1)) : '',
+          feastMonth: returned.feast_month ?? 0,
+          feastName: returned.feast_name ?? undefined,
+          diocese: typeof returned.diocese === 'string' ? returned.diocese : (returned.diocese?.code ?? ''),
+          parish: typeof returned.parish === 'string' ? returned.parish : (returned.parish?.name ?? ''),
+          professionDate: returned.profession_date ?? '',
+          ordinationDate: returned.ordination_date ?? '',
+          photo: returned.photo_url ?? undefined,
+          assignments: [],
+        };
+
+        addMember(createdMember);
+        try {
+          await createAuditLog({ action: 'create', entity_type: 'member', entity_id: createdMember.id, record_label: createdMember.name, metadata: { name: createdMember.name } });
+        } catch (err: any) {
+          notify('Member created (audit failed: ' + (err?.message ?? 'unknown') + ')');
+        }
       } else {
         const { error } = await supabase
           .from('members')
@@ -492,6 +540,11 @@ function MemberEdit() {
 
         if (error) throw error;
         updateMember(member.id, member);
+        try {
+          await createAuditLog({ action: 'update', entity_type: 'member', entity_id: member.id, record_label: member.name, metadata: { name: member.name } });
+        } catch (err: any) {
+          notify('Member updated (audit failed: ' + (err?.message ?? 'unknown') + ')');
+        }
       }
 
       notify(isNew
@@ -651,12 +704,90 @@ function ContentEdit() {
   const set = <K extends keyof ContentItem>(k: K) => (e: { target: { value: string } }) =>
     setItem((it) => ({ ...it, [k]: e.target.value }));
 
-  function save(status: ContentStatus) {
+  async function save(status: ContentStatus) {
     if (!item.title.trim()) { setError('Title is required'); return; }
     const next: ContentItem = { ...item, title: item.title.trim(), status };
-    if (isNew) addContent(next); else updateContent(next.id, next);
-    notify(status === 'draft' ? 'Draft saved' : status === 'scheduled' ? 'Content scheduled' : 'Content published');
-    nav('/admin/content');
+
+    try {
+      if (isNew) {
+        if (next.type === 'News') {
+          const { data, error } = await supabase.from('news_articles').insert({
+            category: next.category ?? NEWS_CATEGORIES[0],
+            headline: next.title,
+            published_date: next.date,
+            author_name: next.author ?? null,
+            image_url: next.image ?? null,
+            body: next.body ? next.body.split('\n\n') : [],
+            status: next.status,
+          }).select('*').single();
+
+          if (error) throw error;
+
+          const created: ContentItem = {
+            id: data.id,
+            type: 'News',
+            title: data.headline,
+            status: data.status ?? 'draft',
+            date: data.published_date,
+            category: data.category,
+            author: data.author_name ?? undefined,
+            image: data.image_url ?? undefined,
+            body: Array.isArray(data.body) ? data.body.join('\n\n') : '',
+          };
+
+          addContent(created);
+          try {
+            await createAuditLog({ action: 'create', entity_type: 'news_article', entity_id: created.id, record_label: created.title, metadata: { category: created.category } });
+          } catch (err: any) {
+            notify('Content created (audit failed: ' + (err?.message ?? 'unknown') + ')');
+          }
+        } else {
+          // For non-News types, fall back to local-only behavior (not persisted)
+          addContent(next);
+        }
+      } else {
+        if (next.type === 'News') {
+          const { data, error } = await supabase.from('news_articles').update({
+            category: next.category ?? NEWS_CATEGORIES[0],
+            headline: next.title,
+            published_date: next.date,
+            author_name: next.author ?? null,
+            image_url: next.image ?? null,
+            body: next.body ? next.body.split('\n\n') : [],
+            status: next.status,
+          }).eq('id', next.id).select('*').single();
+
+          if (error) throw error;
+
+          const updated: ContentItem = {
+            id: data.id,
+            type: 'News',
+            title: data.headline,
+            status: data.status ?? 'draft',
+            date: data.published_date,
+            category: data.category,
+            author: data.author_name ?? undefined,
+            image: data.image_url ?? undefined,
+            body: Array.isArray(data.body) ? data.body.join('\n\n') : '',
+          };
+
+          updateContent(updated.id, updated);
+          try {
+            await createAuditLog({ action: 'update', entity_type: 'news_article', entity_id: updated.id, record_label: updated.title, metadata: { category: updated.category } });
+          } catch (err: any) {
+            notify('Content updated (audit failed: ' + (err?.message ?? 'unknown') + ')');
+          }
+        } else {
+          // For non-News types, fall back to local-only behavior (not persisted)
+          updateContent(next.id, next);
+        }
+      }
+
+      notify(status === 'draft' ? 'Draft saved' : status === 'scheduled' ? 'Content scheduled' : 'Content published');
+      nav('/admin/content');
+    } catch (err: any) {
+      notify(err?.message ?? 'Unable to save content');
+    }
   }
 
   return (
@@ -797,7 +928,7 @@ function AuditLogs() {
   const { t } = useLocale();
   const { notify } = useToast();
   const [q, setQ] = useState('');
-  const [entries, setEntries] = useState<any[]>([]);
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -816,7 +947,7 @@ function AuditLogs() {
     return () => { active = false; };
   }, []);
 
-  const list = entries.filter((a) => (a.action + (a.record_label ?? '') + (a.user_id ?? '')).toLowerCase().includes(q.toLowerCase()));
+  const list = entries.filter((a) => (a.action + a.record + a.user).toLowerCase().includes(q.toLowerCase()));
 
   return (
     <AdminScreen title={t('admin.audit')} back

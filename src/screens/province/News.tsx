@@ -52,7 +52,7 @@ export function News() {
   }, []);
 
   const categories = useMemo(() => Array.from(new Set(news.map((n) => n.category))), [news]);
-  const featured = news.find((n) => n.featured) ?? news[0];
+  const featured = news.length > 0 ? (news.find((n) => n.featured) ?? news[0]) : undefined;
 
   const results = useMemo(() => news.filter((n) => {
     if (query && !`${n.headline} ${n.summary} ${n.category}`.toLowerCase().includes(query.toLowerCase())) return false;
@@ -67,7 +67,7 @@ export function News() {
         {categories.map((c) => <FilterChip key={c} active={cat === c} onClick={() => setCat(cat === c ? null : c)}>{c}</FilterChip>)}
       </div>
 
-      {!query && !cat && (
+      {!query && !cat && featured && (
         <div className="mt-5">
           <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-ink2">{t('news.featured')}</p>
           <NewsCard article={featured} />
@@ -75,7 +75,7 @@ export function News() {
       )}
 
       <div className="mt-6 grid gap-3 md:grid-cols-2">
-        {results.filter((n) => query || cat || n.id !== featured.id).map((a) => <NewsCard key={a.id} article={a} compact />)}
+        {results.filter((n) => query || cat || n.id !== featured?.id).map((a) => <NewsCard key={a.id} article={a} compact />)}
       </div>
       {results.length === 0 && <EmptyState icon={<Newspaper size={26} />} title={t('news.empty')} />}
     </Screen>

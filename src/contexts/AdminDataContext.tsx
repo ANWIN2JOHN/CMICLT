@@ -29,8 +29,8 @@ interface AdminData {
   updateMember: (id: string, patch: Partial<Member>) => void;
   archivedIds: Set<string>;
   isArchived: (id: string) => boolean;
-  archiveMember: (id: string) => void;
-  restoreMember: (id: string) => void;
+  archiveMember: (id: string) => Promise<void>;
+  restoreMember: (id: string) => Promise<void>;
   content: ContentItem[];
   getContent: (id: string) => ContentItem | undefined;
   addContent: (c: ContentItem) => void;
@@ -87,8 +87,24 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     updateMember: (id, patch) => setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m))),
     archivedIds,
     isArchived: (id) => archivedIds.has(id),
-    archiveMember: (id) => setArchivedIds((prev) => new Set(prev).add(id)),
-    restoreMember: (id) => setArchivedIds((prev) => { const n = new Set(prev); n.delete(id); return n; }),
+    archiveMember: async (id: string) => {
+      try {
+        const { error } = await supabase.from('members').update({ archived_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        setArchivedIds((prev) => new Set(prev).add(id));
+      } catch (err) {
+        throw err instanceof Error ? err : new Error('Unable to archive member');
+      }
+    },
+    restoreMember: async (id: string) => {
+      try {
+        const { error } = await supabase.from('members').update({ archived_at: null }).eq('id', id);
+        if (error) throw error;
+        setArchivedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+      } catch (err) {
+        throw err instanceof Error ? err : new Error('Unable to restore member');
+      }
+    },
     content,
     getContent: (id) => content.find((c) => c.id === id),
     addContent: (c) => setContent((prev) => [c, ...prev]),

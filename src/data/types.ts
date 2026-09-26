@@ -52,6 +52,46 @@ export interface Institution {
   head: string;
   residents: number;
   photo?: string;
+  entityType?: string;
+  parentInstitutionId?: string | null;
+}
+
+export interface MemberInstitutionAssignment {
+  id: string;
+  member_id: string;
+  institution_id: string;
+  position: string | null;
+  institution?: {
+    id: string;
+    name: string;
+    entity_type?: string | null;
+    parent_institution_id?: string | null;
+    category?: string | null;
+    zone?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    established_year?: number | null;
+    residents?: number | null;
+    photo_url?: string | null;
+  } | null;
+}
+
+export interface HouseListEntry {
+  id: string;
+  name: string;
+  category: string | null;
+  house: string | null;
+  institution_id: string | null;
+  role: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  photo_url: string | null;
+  institution?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export type EventCategory = 'birthday' | 'feast' | 'province' | 'anniversary' | 'jubilee';
