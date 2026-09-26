@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Newspaper, Share2 } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
@@ -8,21 +8,57 @@ import { NewsCard } from '../../components/patterns/cards';
 import { Button, IconButton } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/states';
 import { useToast } from '../../components/ui/overlays';
-import { news } from '../../data/content';
 import { useLocale } from '../../contexts/LocaleContext';
+import { supabase } from '../../lib/supabase';
+import type { NewsArticle } from '../../data/types';
 
 export function News() {
   const { t } = useLocale();
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState<string | null>(null);
-  const categories = useMemo(() => Array.from(new Set(news.map((n) => n.category))), []);
+  const [news, setNews] = useState<NewsArticle[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data, error } = await supabase
+        .from('news_articles')
+        .select('*')
+        .eq('status', 'published')
+        .order('published_date', { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        setNews([]);
+        return;
+      }
+
+      setNews((data ?? []).map((row: any) => ({
+        id: row.id,
+        category: row.category || 'Province',
+        headline: row.headline,
+        date: row.published_date,
+        author: row.author_name ?? undefined,
+        summary: row.summary ?? '',
+        image: row.image_url ?? 'https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1200&q=70',
+        featured: !!row.featured,
+        body: Array.isArray(row.body) ? row.body.map((entry: unknown) => String(entry)) : [row.summary ?? ''],
+      })));
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const categories = useMemo(() => Array.from(new Set(news.map((n) => n.category))), [news]);
   const featured = news.find((n) => n.featured) ?? news[0];
 
   const results = useMemo(() => news.filter((n) => {
     if (query && !`${n.headline} ${n.summary} ${n.category}`.toLowerCase().includes(query.toLowerCase())) return false;
     if (cat && n.category !== cat) return false;
     return true;
-  }), [query, cat]);
+  }), [query, cat, news]);
 
   return (
     <Screen title={t('news.title')} back>
@@ -51,6 +87,41 @@ export function NewsArticle() {
   const { id } = useParams();
   const nav = useNavigate();
   const { notify } = useToast();
+  const [news, setNews] = useState<NewsArticle[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data, error } = await supabase
+        .from('news_articles')
+        .select('*')
+        .eq('status', 'published')
+        .order('published_date', { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        setNews([]);
+        return;
+      }
+
+      setNews((data ?? []).map((row: any) => ({
+        id: row.id,
+        category: row.category || 'Province',
+        headline: row.headline,
+        date: row.published_date,
+        author: row.author_name ?? undefined,
+        summary: row.summary ?? '',
+        image: row.image_url ?? 'https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1200&q=70',
+        featured: !!row.featured,
+        body: Array.isArray(row.body) ? row.body.map((entry: unknown) => String(entry)) : [row.summary ?? ''],
+      })));
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
   const a = news.find((n) => n.id === id);
   if (!a) return <Screen title={t('news.title')} back><EmptyState title="Not found" /></Screen>;
   const related = news.filter((n) => n.category === a.category && n.id !== a.id).slice(0, 3);

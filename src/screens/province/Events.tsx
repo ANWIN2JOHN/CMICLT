@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CalendarDays, Clock, List, MapPin } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
 import { EventCard } from '../../components/patterns/cards';
 import { FilterChip, Card } from '../../components/ui/primitives';
 import { Button } from '../../components/ui/Button';
-import { EmptyState } from '../../components/ui/states';
+import { EmptyState, ErrorState } from '../../components/ui/states';
 import { useToast } from '../../components/ui/overlays';
-import { events } from '../../data/content';
 import { useLocale } from '../../contexts/LocaleContext';
-import type { EventCategory } from '../../data/types';
+import type { CmiEvent, EventCategory, Member } from '../../data/types';
 import { cn } from '../../lib/cn';
+import { supabase } from '../../lib/supabase';
+import { getMembers } from '../../services/memberService';
 
 const catList: Array<{ id: EventCategory; key: any }> = [
   { id: 'birthday', key: 'events.cat.birthday' }, { id: 'feast', key: 'events.cat.feast' },
@@ -18,16 +19,124 @@ const catList: Array<{ id: EventCategory; key: any }> = [
   { id: 'jubilee', key: 'events.cat.jubilee' },
 ];
 
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function nextOccurrenceDate(month: number, day: number) {
+  const today = new Date();
+  const candidate = new Date(today.getFullYear(), month - 1, day);
+
+  if (candidate < today) {
+    candidate.setFullYear(candidate.getFullYear() + 1);
+  }
+
+  return candidate;
+}
+
+function getMemberBirthdayEvent(member: Member): CmiEvent | null {
+  if (!member.birthday || !member.birthMonth) {
+    return null;
+  }
+
+  const day = Number(member.birthday.match(/\d+/)?.[0] ?? 0);
+  if (!day) return null;
+
+  const next = nextOccurrenceDate(member.birthMonth, day);
+  return {
+    id: `birthday-${member.id}`,
+    title: `Birthday — ${member.name}`,
+    category: 'birthday',
+    date: toIsoDate(next),
+    location: member.house || undefined,
+  };
+}
+
+function getMemberFeastEvent(member: Member): CmiEvent | null {
+  const month = Number(member.feastMonth ?? 0);
+  const day = Number(String(member.feastDay ?? '').match(/\d+/)?.[0] ?? 0);
+
+  if (!month || !day) {
+    return null;
+  }
+
+  const next = nextOccurrenceDate(month, day);
+  return {
+    id: `feast-${member.id}`,
+    title: `${member.feastName || 'Feast day'} — ${member.name}`,
+    category: 'feast',
+    date: toIsoDate(next),
+    location: member.house || undefined,
+  };
+}
+
 export function Events() {
   const { t } = useLocale();
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [cat, setCat] = useState<EventCategory | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
+  const [events, setEvents] = useState<CmiEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadEvents() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [memberRows, { data: eventRows, error: eventError }] = await Promise.all([
+          getMembers(),
+          supabase
+            .from('events')
+            .select('*')
+            .order('event_date', { ascending: true }),
+        ]);
+
+        if (eventError) {
+          throw eventError;
+        }
+
+        if (!active) return;
+
+        const birthdayEvents = memberRows
+          .map((member) => getMemberBirthdayEvent(member))
+          .filter((event): event is CmiEvent => Boolean(event));
+
+        const feastEvents = memberRows
+          .map((member) => getMemberFeastEvent(member))
+          .filter((event): event is CmiEvent => Boolean(event));
+
+        const provinceEvents = (eventRows ?? []).map((row) => ({
+          id: row.id,
+          title: row.title,
+          category: row.category,
+          date: row.event_date,
+          time: row.event_time ?? undefined,
+          location: row.location ?? undefined,
+          description: row.description ?? undefined,
+        })) as CmiEvent[];
+
+        setEvents([...provinceEvents, ...birthdayEvents, ...feastEvents]);
+      } catch (err) {
+        if (!active) return;
+        setEvents([]);
+        setError(err instanceof Error ? err.message : 'Unable to load events.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadEvents();
+    return () => { active = false; };
+  }, []);
 
   const filtered = useMemo(() => {
     const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
     return cat ? sorted.filter((e) => e.category === cat) : sorted;
-  }, [cat]);
+  }, [events, cat]);
 
   return (
     <Screen title={t('events.title')} right={
@@ -46,7 +155,15 @@ export function Events() {
         {catList.map((c) => <FilterChip key={c.id} active={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)}>{t(c.key)}</FilterChip>)}
       </div>
 
-      {view === 'calendar' ? (
+      {loading ? (
+        <div className="mt-4 space-y-2.5">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-20 animate-pulse rounded-[var(--r-card)] bg-card2" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="mt-4"><ErrorState title="Unable to load events" body={error} /></div>
+      ) : view === 'calendar' ? (
         <CalendarView monthOffset={monthOffset} setMonthOffset={setMonthOffset} events={filtered} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={<CalendarDays size={26} />} title={t('events.empty')} />
@@ -104,7 +221,34 @@ export function EventDetail() {
   const { t } = useLocale();
   const { id } = useParams();
   const { notify } = useToast();
-  const e = events.find((x) => x.id === id);
+  const [eventList, setEventList] = useState<CmiEvent[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data, error } = await supabase.from('events').select('*').order('event_date', { ascending: true });
+      if (!active) return;
+      if (error) {
+        setEventList([]);
+        return;
+      }
+      setEventList((data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        date: row.event_date,
+        time: row.event_time ?? undefined,
+        location: row.location ?? undefined,
+        description: row.description ?? undefined,
+      })));
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const e = eventList.find((x) => x.id === id);
   if (!e) return <Screen title={t('events.title')} back><EmptyState title="Not found" /></Screen>;
   const d = new Date(e.date);
   return (

@@ -7,9 +7,9 @@ import { FilterChip, Skeleton } from '../../components/ui/primitives';
 import { BottomSheet } from '../../components/ui/overlays';
 import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState } from '../../components/ui/states';
-import { zones } from '../../data/content';
 import { useLocale } from '../../contexts/LocaleContext';
 import { getMembers, searchMembers } from '../../services/memberService';
+import { getZones } from '../../services/referenceService';
 import type { Member, Zone } from '../../data/types';
 
 const roleOptions = ['Provincial', 'Superior', 'Principal', 'Parish Priest', 'Professor', 'Formator', 'Missionary'];
@@ -24,6 +24,7 @@ export function Members() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [zones, setZones] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -45,7 +46,17 @@ export function Members() {
   }, [query]);
 
   useEffect(() => {
+    let active = true;
+
+    void getZones().then((rows) => {
+      if (!active) return;
+      setZones(rows.map((row) => row.name));
+    }).catch(() => {
+      if (active) setZones([]);
+    });
+
     void loadMembers();
+    return () => { active = false; };
   }, [loadMembers]);
 
   const activeCount = filters.zone.length + filters.role.length + filters.birthMonth.length;
@@ -131,7 +142,7 @@ export function Members() {
           </div>
         }>
         <FilterGroup label={t('members.zone')}>
-          {zones.map((z) => <FilterChip key={z} active={draft.zone.includes(z)} onClick={() => toggle('zone', z)}>{z}</FilterChip>)}
+          {zones.map((z) => <FilterChip key={z} active={draft.zone.includes(z as Zone)} onClick={() => toggle('zone', z as Zone)}>{z}</FilterChip>)}
         </FilterGroup>
         <FilterGroup label={t('members.role')}>
           {roleOptions.map((r) => <FilterChip key={r} active={draft.role.includes(r)} onClick={() => toggle('role', r)}>{r}</FilterChip>)}

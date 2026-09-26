@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, CalendarDays, Cake, ChevronRight, Landmark, Search, Star, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocale } from '../../contexts/LocaleContext';
-import { events, news } from '../../data/content';
 import { Avatar, Card, SectionHeader, StatusChip, Skeleton } from '../../components/ui/primitives';
 import { EventCard, MemberRow, NewsCard } from '../../components/patterns/cards';
 import { IconButton } from '../../components/ui/Button';
 import { ErrorState } from '../../components/ui/states';
+import { supabase } from '../../lib/supabase';
 import { getMembers } from '../../services/memberService';
-import type { Member } from '../../data/types';
+import type { CmiEvent, Member, NewsArticle } from '../../data/types';
 
 function getDayValue(value: string | number | null | undefined): number {
   if (value == null) return 0;
@@ -33,29 +33,77 @@ export function Home() {
   const name = user?.name ?? 'Fr. John';
   const dateStr = new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
   const [members, setMembers] = useState<Member[]>([]);
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<CmiEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    async function loadMembers() {
+    async function loadData() {
       try {
         setLoading(true);
         setError(null);
-        const nextMembers = await getMembers();
+
+        const [nextMembers, { data: eventRows, error: eventError }, { data: newsRows, error: newsError }] = await Promise.all([
+          getMembers(),
+          supabase
+            .from('events')
+            .select('*')
+            .gte('event_date', new Date().toISOString().slice(0, 10))
+            .order('event_date', { ascending: true })
+            .limit(4),
+          supabase
+            .from('news_articles')
+            .select('*')
+            .eq('status', 'published')
+            .order('published_date', { ascending: false })
+            .limit(5),
+        ]);
+
+        if (eventError) {
+          throw eventError;
+        }
+        if (newsError) {
+          throw newsError;
+        }
+
         if (!active) return;
+
         setMembers(nextMembers);
+        setNews((newsRows ?? []).map((row: any) => ({
+          id: row.id,
+          category: row.category ?? 'Province',
+          headline: row.headline,
+          date: row.published_date,
+          author: row.author_name ?? undefined,
+          summary: row.summary ?? '',
+          image: row.image_url ?? 'https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1200&q=70',
+          featured: !!row.featured,
+          body: Array.isArray(row.body) ? row.body.map((entry: unknown) => String(entry)) : [row.summary ?? ''],
+        })));
+        setUpcomingEvents((eventRows ?? []).map((row) => ({
+          id: row.id,
+          title: row.title,
+          category: row.category,
+          date: row.event_date,
+          time: row.event_time ?? undefined,
+          location: row.location ?? undefined,
+          description: row.description ?? undefined,
+        })));
       } catch (err) {
         if (!active) return;
         setMembers([]);
+        setNews([]);
+        setUpcomingEvents([]);
         setError(err instanceof Error ? err.message : 'Unable to load member data.');
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    void loadMembers();
+    void loadData();
     return () => { active = false; };
   }, []);
 
@@ -116,7 +164,7 @@ export function Home() {
       }));
   }, [members]);
 
-  const upcoming = events.filter((e) => e.category !== 'birthday').slice(0, 4);
+  const upcoming = upcomingEvents.filter((e) => e.category !== 'birthday').slice(0, 4);
   const recent = members.slice(0, 4);
 
   const quick = [
@@ -146,8 +194,7 @@ export function Home() {
         <Card onClick={() => nav('/news/n1')} className="overflow-hidden bg-gradient-to-br from-emerald to-emeraldd text-white">
           <div className="p-5">
             <StatusChip tone="gold">{t('home.announcement')}</StatusChip>
-            <h2 className="mt-3 font-head text-[21px] font-semibold leading-snug text-white">Province celebrates 70 years of service in Malabar</h2>
-            <p className="mt-1.5 text-[14px] text-white/85">A thanksgiving Eucharist marked seven decades of service across the region.</p>
+            <h2 className="mt-3 font-head text-[21px] font-semibold leading-snug text-white">Saturday, 10 October 2026 – Jubilee Celebration at the Provincial House</h2>
             <span className="mt-3 inline-flex items-center gap-1 text-[14px] font-medium text-gold">Read more <ChevronRight size={16} /></span>
           </div>
         </Card>
@@ -187,7 +234,7 @@ export function Home() {
                 <button key={m.id} onClick={() => nav(`/members/${m.id}`)}
                   className="press flex w-[130px] shrink-0 flex-col items-center gap-2 rounded-[18px] border border-line bg-card p-3.5 text-center active:bg-card2">
                   <Avatar name={m.name} size={56} />
-                  <p className="line-clamp-2 text-[13px] font-medium leading-tight text-ink">{m.name.replace('Fr. ', '')}</p>
+                  <p className="min-w-0 w-full overflow-hidden text-[13px] font-medium leading-tight text-ink [display:-webkit-box] [overflow-wrap:anywhere] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{m.name.replace('Fr. ', '')}</p>
                   <span className="inline-flex items-center gap-1 text-[12px] text-gold"><Cake size={13} /> {m.birthday}</span>
                 </button>
               ))}
@@ -238,15 +285,17 @@ export function Home() {
         </section>
 
         {/* Latest news */}
-        <section>
-          <SectionHeader title={t('home.latestNews')} action={t('common.viewAll')} onAction={() => nav('/news')} />
-          <div className="grid gap-3 md:grid-cols-2">
-            <NewsCard article={news[1]} />
-            <div className="space-y-2.5">
-              {news.slice(2, 5).map((a) => <NewsCard key={a.id} article={a} compact />)}
+        {news.length > 0 && (
+          <section>
+            <SectionHeader title={t('home.latestNews')} action={t('common.viewAll')} onAction={() => nav('/news')} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <NewsCard article={news[0]} />
+              <div className="space-y-2.5">
+                {news.slice(1, 4).map((a) => <NewsCard key={a.id} article={a} compact />)}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Recently viewed */}
         <section>

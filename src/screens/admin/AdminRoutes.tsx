@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity, AlertTriangle, Archive, ArrowRight, Calendar, Check, ChevronRight, CircleUser,
@@ -11,11 +11,12 @@ import { Avatar, Card, FilterChip, SectionHeader, StatusChip } from '../../compo
 import { TextInput, SearchField, SelectField, TextArea } from '../../components/ui/Input';
 import { BottomSheet, Dialog, useToast } from '../../components/ui/overlays';
 import { EmptyState, SuccessState } from '../../components/ui/states';
-import { adminStats, auditLog, userAccounts as seedAccounts } from '../../data/content';
 import type { AccountStatus, Member, UserAccount, Zone } from '../../data/types';
 import { AdminDataProvider, useAdminData, type ContentItem, type ContentStatus, type ContentType } from '../../contexts/AdminDataContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { cn } from '../../lib/cn';
+import { supabase } from '../../lib/supabase';
+import { getAdminDashboardStats, getAdminAccounts, getAuditEntries } from '../../services/adminService';
 
 export function AdminRoutes() {
   return (
@@ -47,17 +48,44 @@ function statTone(warn?: boolean, alert?: boolean) {
 function AdminDashboard() {
   const { t } = useLocale();
   const nav = useNavigate();
+  const [stats, setStats] = useState<Array<{ label: string; value: number; icon: any; tone?: 'warn' | 'alert' }>>([]);
 
-  const stats: Array<{ label: string; value: number; icon: any; tone?: 'warn' | 'alert' }> = [
-    { label: t('admin.stat.activeMembers'), value: adminStats.activeMembers, icon: Users },
-    { label: t('admin.stat.pending'), value: adminStats.pending, icon: UserPlus, tone: 'warn' },
-    { label: t('admin.stat.locked'), value: adminStats.locked, icon: Lock, tone: 'alert' },
-    { label: t('admin.stat.failed'), value: adminStats.failed, icon: ShieldCheck, tone: 'warn' },
-    { label: t('admin.stat.institutions'), value: adminStats.institutions, icon: Database },
-    { label: t('admin.stat.events'), value: adminStats.events, icon: Calendar },
-    { label: t('admin.stat.changes'), value: adminStats.changes, icon: Activity },
-    { label: t('admin.stat.warnings'), value: adminStats.warnings, icon: AlertTriangle, tone: 'alert' },
-  ];
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const next = await getAdminDashboardStats();
+        if (!active) return;
+        setStats([
+          { label: t('admin.stat.activeMembers'), value: next.activeMembers, icon: Users },
+          { label: t('admin.stat.pending'), value: next.pending, icon: UserPlus, tone: 'warn' },
+          { label: t('admin.stat.locked'), value: next.locked, icon: Lock, tone: 'alert' },
+          { label: t('admin.stat.failed'), value: next.failed, icon: ShieldCheck, tone: 'warn' },
+          { label: t('admin.stat.institutions'), value: next.institutions, icon: Database },
+          { label: t('admin.stat.events'), value: next.events, icon: Calendar },
+          { label: t('admin.stat.changes'), value: next.changes, icon: Activity },
+          { label: t('admin.stat.warnings'), value: next.warnings, icon: AlertTriangle, tone: 'alert' },
+        ]);
+      } catch {
+        if (active) {
+          setStats([
+            { label: t('admin.stat.activeMembers'), value: 0, icon: Users },
+            { label: t('admin.stat.pending'), value: 0, icon: UserPlus, tone: 'warn' },
+            { label: t('admin.stat.locked'), value: 0, icon: Lock, tone: 'alert' },
+            { label: t('admin.stat.failed'), value: 0, icon: ShieldCheck, tone: 'warn' },
+            { label: t('admin.stat.institutions'), value: 0, icon: Database },
+            { label: t('admin.stat.events'), value: 0, icon: Calendar },
+            { label: t('admin.stat.changes'), value: 0, icon: Activity },
+            { label: t('admin.stat.warnings'), value: 0, icon: AlertTriangle, tone: 'alert' },
+          ]);
+        }
+      }
+    }
+
+    void load();
+    return () => { active = false; };
+  }, [t]);
 
   const links: Array<{ label: string; sub: string; icon: any; to: string }> = [
     { label: t('admin.users'), sub: 'Activate, unlock & reset accounts', icon: CircleUser, to: 'users' },
@@ -120,11 +148,40 @@ const statusTone: Record<AccountStatus, 'success' | 'warning' | 'error' | 'neutr
 function UserAccounts() {
   const { t } = useLocale();
   const { notify } = useToast();
-  const [accounts, setAccounts] = useState<UserAccount[]>(seedAccounts);
+  const [accounts, setAccounts] = useState<UserAccount[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<AccountStatus>('active');
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<UserAccount | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: string; run: () => void } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAccounts() {
+      try {
+        setLoading(true);
+        const rows = await getAdminAccounts();
+        if (!active) return;
+
+        setAccounts((rows ?? []).map((row: any) => ({
+          id: row.id,
+          memberId: row.member?.id ?? row.member_id ?? row.memberId ?? '',
+          name: row.member?.name ?? 'Unknown member',
+          identifier: row.member?.email ?? '',
+          role: row.role ?? 'member',
+          status: row.status ?? 'active',
+          lastLogin: row.last_login_at ? new Date(row.last_login_at).toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
+          failedAttempts: row.failed_attempts ?? 0,
+        })));
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadAccounts();
+    return () => { active = false; };
+  }, []);
 
   const tabs: Array<{ id: AccountStatus; label: string }> = [
     { id: 'active', label: t('admin.tab.active') }, { id: 'pending', label: t('admin.tab.pending') },
@@ -154,8 +211,16 @@ function UserAccounts() {
       </div>
 
       <div className="mt-4 space-y-2.5">
-        {list.length === 0 && <EmptyState icon={<Users size={26} />} title="No accounts" body="No accounts in this category." />}
-        {list.map((a) => (
+        {loading ? (
+          <div className="space-y-2.5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-16 animate-pulse rounded-[var(--r-card)] bg-card2" />
+            ))}
+          </div>
+        ) : list.length === 0 ? (
+          <EmptyState icon={<Users size={26} />} title="No accounts" body="No accounts in this category." />
+        ) : null}
+        {!loading && list.map((a) => (
           <Card key={a.id} onClick={() => setSel(a)} className="flex items-center gap-3 p-3.5">
             <Avatar name={a.name} size={44} />
             <div className="min-w-0 flex-1">
@@ -379,15 +444,63 @@ function MemberEdit() {
     };
   }
 
-  function save(action: 'draft' | 'publish') {
+  async function save(action: 'draft' | 'publish') {
     if (!validate()) return;
     const member = buildMember();
-    if (isNew) addMember(member);
-    else updateMember(member.id, member);
-    notify(isNew
-      ? (action === 'draft' ? 'Member draft saved' : 'Member published')
-      : (action === 'draft' ? 'Draft saved' : 'Changes published'));
-    nav('/admin/members');
+
+    try {
+      if (isNew) {
+        const { error } = await supabase.from('members').insert({
+          name: member.name,
+          role: member.role,
+          house: member.house,
+          zone: member.zone,
+          country: member.country,
+          phone: member.phone,
+          email: member.email,
+          birthday: member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : null,
+          feast_name: member.feastName || null,
+          feast_day: member.feastDay ? new Date(`2000 ${member.feastDay}`).toISOString().slice(0, 10) : null,
+          diocese: member.diocese || null,
+          parish: member.parish || null,
+          profession_date: member.professionDate ? new Date(member.professionDate).toISOString().slice(0, 10) : null,
+          ordination_date: member.ordinationDate ? new Date(member.ordinationDate).toISOString().slice(0, 10) : null,
+        });
+
+        if (error) throw error;
+        addMember(member);
+      } else {
+        const { error } = await supabase
+          .from('members')
+          .update({
+            name: member.name,
+            role: member.role,
+            house: member.house,
+            zone: member.zone,
+            country: member.country,
+            phone: member.phone,
+            email: member.email,
+            birthday: member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : null,
+            feast_name: member.feastName || null,
+            feast_day: member.feastDay ? new Date(`2000 ${member.feastDay}`).toISOString().slice(0, 10) : null,
+            diocese: member.diocese || null,
+            parish: member.parish || null,
+            profession_date: member.professionDate ? new Date(member.professionDate).toISOString().slice(0, 10) : null,
+            ordination_date: member.ordinationDate ? new Date(member.ordinationDate).toISOString().slice(0, 10) : null,
+          })
+          .eq('id', member.id);
+
+        if (error) throw error;
+        updateMember(member.id, member);
+      }
+
+      notify(isNew
+        ? (action === 'draft' ? 'Member draft saved' : 'Member published')
+        : (action === 'draft' ? 'Draft saved' : 'Changes published'));
+      nav('/admin/members');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Unable to save member.');
+    }
   }
 
   const displayName = form.name.trim() || 'New member';
@@ -684,7 +797,26 @@ function AuditLogs() {
   const { t } = useLocale();
   const { notify } = useToast();
   const [q, setQ] = useState('');
-  const list = auditLog.filter((a) => (a.action + a.user + a.record).toLowerCase().includes(q.toLowerCase()));
+  const [entries, setEntries] = useState<any[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const next = await getAuditEntries();
+        if (!active) return;
+        setEntries(next);
+      } catch {
+        if (active) setEntries([]);
+      }
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const list = entries.filter((a) => (a.action + (a.record_label ?? '') + (a.user_id ?? '')).toLowerCase().includes(q.toLowerCase()));
 
   return (
     <AdminScreen title={t('admin.audit')} back

@@ -1,14 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { members as seedMembers } from '../data/members';
-import { news, events } from '../data/content';
 import type { Member } from '../data/types';
-
-/**
- * Admin-scoped mutable store. Seeds from the existing mock data modules and
- * keeps member + content edits in memory for the session so that create /
- * update / archive operations are reflected when returning to the admin
- * management lists. Prototype only — no backend.
- */
+import { getMembers } from '../services/memberService';
+import { supabase } from '../lib/supabase';
 
 export type ContentType = 'News' | 'Event' | 'Gallery' | 'Vocation' | 'Chavarul' | 'Contact';
 export type ContentStatus = 'published' | 'scheduled' | 'draft';
@@ -44,37 +37,48 @@ interface AdminData {
   updateContent: (id: string, patch: Partial<ContentItem>) => void;
 }
 
-const seedContent: ContentItem[] = [
-  ...news.map((n, i) => ({
-    id: n.id,
-    type: 'News' as ContentType,
-    title: n.headline,
-    status: (i % 5 === 0 ? 'draft' : i % 4 === 0 ? 'scheduled' : 'published') as ContentStatus,
-    date: n.date,
-    category: n.category,
-    author: n.author,
-    image: n.image,
-    body: n.summary,
-  })),
-  ...events.slice(0, 6).map((e, i) => ({
-    id: e.id,
-    type: 'Event' as ContentType,
-    title: e.title,
-    status: (i % 3 === 0 ? 'scheduled' : 'published') as ContentStatus,
-    date: e.date,
-    category: e.category,
-    time: e.time,
-    location: e.location,
-    description: e.description,
-  })),
-];
-
 const Ctx = createContext<AdminData | null>(null);
 
 export function AdminDataProvider({ children }: { children: ReactNode }) {
-  const [members, setMembers] = useState<Member[]>(() => seedMembers.map((m) => ({ ...m })));
+  const [members, setMembers] = useState<Member[]>([]);
   const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
-  const [content, setContent] = useState<ContentItem[]>(() => seedContent.map((c) => ({ ...c })));
+  const [content, setContent] = useState<ContentItem[]>([]);
+
+  useMemo(() => {
+    let active = true;
+
+    void getMembers().then((next) => {
+      if (active) setMembers(next);
+    }).catch(() => {
+      if (active) setMembers([]);
+    });
+
+    void supabase
+      .from('news_articles')
+      .select('*')
+      .limit(20)
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          setContent([]);
+          return;
+        }
+
+        setContent((data ?? []).map((row) => ({
+          id: row.id,
+          type: 'News',
+          title: row.headline,
+          status: row.status ?? 'published',
+          date: row.published_date,
+          category: row.category,
+          author: row.author_name ?? undefined,
+          image: row.image_url ?? undefined,
+          body: Array.isArray(row.body) ? row.body.join('\n\n') : '',
+        })));
+      });
+
+    return () => { active = false; };
+  }, []);
 
   const value = useMemo<AdminData>(() => ({
     members,

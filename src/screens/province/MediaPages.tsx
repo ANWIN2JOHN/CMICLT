@@ -1,22 +1,53 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Bookmark, ChevronLeft, ChevronRight, Compass, HandHeart, Sparkles, X } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
 import { Card, SectionHeader, StatusChip } from '../../components/ui/primitives';
 import { TextInput } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { SuccessState } from '../../components/ui/states';
+import { EmptyState, SuccessState } from '../../components/ui/states';
 import { useToast } from '../../components/ui/overlays';
-import { albums, reflections } from '../../data/content';
 import { useLocale } from '../../contexts/LocaleContext';
 import { whatsappLink } from '../../lib/contact';
 import { cn } from '../../lib/cn';
+import { supabase } from '../../lib/supabase';
+import type { Album, Reflection } from '../../data/types';
 
 /* ---------------- Gallery ---------------- */
 export function Gallery() {
   const { t } = useLocale();
   const [album, setAlbum] = useState<string | null>(null);
   const [viewer, setViewer] = useState<number | null>(null);
+  const [albums, setAlbums] = useState<Album[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data, error } = await supabase
+        .from('gallery_albums')
+        .select('*, gallery_photos(*)')
+        .order('created_at', { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        setAlbums([]);
+        return;
+      }
+
+      setAlbums((data ?? []).map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        cover: row.cover_url ?? (row.gallery_photos && row.gallery_photos[0]?.image_url) ?? '',
+        count: Array.isArray(row.gallery_photos) ? row.gallery_photos.length : 0,
+        photos: (Array.isArray(row.gallery_photos) ? row.gallery_photos : []).map((photo: any) => photo.image_url).filter(Boolean),
+      })));
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
   const current = albums.find((a) => a.id === album);
 
   if (current) {
@@ -42,6 +73,14 @@ export function Gallery() {
             </div>
           </div>
         )}
+      </Screen>
+    );
+  }
+
+  if (albums.length === 0) {
+    return (
+      <Screen back title={t('gallery.title')}>
+        <EmptyState title="No gallery albums yet" body="There are no albums available right now." />
       </Screen>
     );
   }
@@ -125,6 +164,37 @@ export function Chavarul() {
   const { t } = useLocale();
   const { id } = useParams();
   const { notify } = useToast();
+  const [reflections, setReflections] = useState<Reflection[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data, error } = await supabase
+        .from('reflections')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+
+      if (!active) return;
+      if (error) {
+        setReflections([]);
+        return;
+      }
+
+      setReflections((data ?? []).map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        excerpt: row.excerpt ?? '',
+        body: Array.isArray(row.body) ? row.body.map((entry: unknown) => String(entry)) : [row.excerpt ?? ''],
+      })));
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
   if (id) {
     const r = reflections.find((x) => x.id === id);
     if (!r) return <Screen back title={t('chavarul.title')} />;

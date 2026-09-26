@@ -1,16 +1,82 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, Quote } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
 import { Card, Avatar, SectionHeader, StatusChip } from '../../components/ui/primitives';
 import { EventCard, MemberRow, NewsCard } from '../../components/patterns/cards';
 import { EmptyState } from '../../components/ui/states';
-import { events, leadership, news } from '../../data/content';
-import { members } from '../../data/members';
 import { useLocale } from '../../contexts/LocaleContext';
+import { supabase } from '../../lib/supabase';
+import { getMembers } from '../../services/memberService';
+import type { CmiEvent, Leader, Member, NewsArticle } from '../../data/types';
 
 export function ProvinceHome() {
   const { t } = useLocale();
   const nav = useNavigate();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [events, setEvents] = useState<CmiEvent[]>([]);
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [leadership, setLeadership] = useState<Leader[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const [memberRows, { data: eventRows, error: eventError }, { data: newsRows, error: newsError }, { data: leaderRows, error: leaderError }] = await Promise.all([
+          getMembers(),
+          supabase.from('events').select('*').order('event_date', { ascending: true }).limit(2),
+          supabase.from('news_articles').select('*').eq('status', 'published').order('published_date', { ascending: false }).limit(5),
+          supabase.from('leaders').select('*').order('sort_order', { ascending: true }),
+        ]);
+
+        if (eventError || newsError || leaderError) {
+          throw eventError ?? newsError ?? leaderError;
+        }
+
+        if (!active) return;
+
+        setMembers(memberRows);
+        setEvents((eventRows ?? []).map((row) => ({
+          id: row.id,
+          title: row.title,
+          category: row.category,
+          date: row.event_date,
+          time: row.event_time ?? undefined,
+          location: row.location ?? undefined,
+          description: row.description ?? undefined,
+        })));
+        setNews((newsRows ?? []).map((row: any) => ({
+          id: row.id,
+          category: row.category ?? 'Province',
+          headline: row.headline,
+          date: row.published_date,
+          author: row.author_name ?? undefined,
+          summary: row.summary ?? '',
+          image: row.image_url ?? 'https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1200&q=70',
+          featured: !!row.featured,
+          body: Array.isArray(row.body) ? row.body.map((entry: unknown) => String(entry)) : [row.summary ?? ''],
+        })));
+        setLeadership((leaderRows ?? []).map((row) => ({
+          id: row.id,
+          name: row.name,
+          role: row.role,
+          note: row.note ?? '',
+          photo: row.photo_url ?? undefined,
+        })));
+      } catch {
+        if (!active) return;
+        setMembers([]);
+        setEvents([]);
+        setNews([]);
+        setLeadership([]);
+      }
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
   return (
     <Screen back title={t('more.provinceHome')}>
       {/* Editorial hero */}
@@ -28,29 +94,35 @@ export function ProvinceHome() {
       </p>
 
       <div className="mt-6 space-y-7">
-        <section>
-          <SectionHeader title={t('home.latestNews')} action={t('common.viewAll')} onAction={() => nav('/news')} />
-          <NewsCard article={news[0]} />
-        </section>
-        <section>
-          <SectionHeader title={t('home.upcomingEvents')} action={t('common.viewAll')} onAction={() => nav('/events')} />
-          <div className="space-y-2.5">{events.slice(0, 2).map((e) => <EventCard key={e.id} event={e} />)}</div>
-        </section>
+        {news.length > 0 && (
+          <section>
+            <SectionHeader title={t('home.latestNews')} action={t('common.viewAll')} onAction={() => nav('/news')} />
+            <NewsCard article={news[0]} />
+          </section>
+        )}
+        {events.length > 0 && (
+          <section>
+            <SectionHeader title={t('home.upcomingEvents')} action={t('common.viewAll')} onAction={() => nav('/events')} />
+            <div className="space-y-2.5">{events.slice(0, 2).map((e) => <EventCard key={e.id} event={e} />)}</div>
+          </section>
+        )}
 
-        <Card className="bg-emeraldd p-5 text-white">
-          <SectionHeader title={t('province.provincialDesk')} />
-          <div className="-mt-1 flex items-center gap-3">
-            <Avatar name={leadership[0].name} size={52} />
-            <div>
-              <p className="font-medium">{leadership[0].name}</p>
-              <p className="text-[13px] text-white/70">{leadership[0].role}</p>
+        {leadership.length > 0 && (
+          <Card className="bg-emeraldd p-5 text-white">
+            <SectionHeader title={t('province.provincialDesk')} />
+            <div className="-mt-1 flex items-center gap-3">
+              <Avatar name={leadership[0].name} size={52} />
+              <div>
+                <p className="font-medium">{leadership[0].name}</p>
+                <p className="text-[13px] text-white/70">{leadership[0].role}</p>
+              </div>
             </div>
-          </div>
-          <p className="mt-3 text-[14px] leading-relaxed text-white/85">
-            “Dear brothers and friends, let us continue to be instruments of God’s love, rooted in prayer and reaching
-            out in generous service to all whom we are called to serve.”
-          </p>
-        </Card>
+            <p className="mt-3 text-[14px] leading-relaxed text-white/85">
+              “Dear brothers and friends, let us continue to be instruments of God’s love, rooted in prayer and reaching
+              out in generous service to all whom we are called to serve.”
+            </p>
+          </Card>
+        )}
 
         <Card className="border-gold/30 bg-goldl p-5">
           <div className="flex items-center gap-2 text-gold"><Quote size={18} /><span className="text-[13px] font-semibold uppercase tracking-wide">{t('province.spiritualQuote')}</span></div>
@@ -58,14 +130,16 @@ export function ProvinceHome() {
           <p className="mt-2 text-[13px] text-ink2">— St. Kuriakose Elias Chavara</p>
         </Card>
 
-        <section>
-          <SectionHeader title={t('home.birthdays')} />
-          <Card className="px-4 py-1">
-            {members.slice(0, 4).map((m, i) => (
-              <div key={m.id} className={i > 0 ? 'border-t border-line' : ''}><MemberRow member={m} /></div>
-            ))}
-          </Card>
-        </section>
+        {members.length > 0 && (
+          <section>
+            <SectionHeader title={t('home.birthdays')} />
+            <Card className="px-4 py-1">
+              {members.slice(0, 4).map((m, i) => (
+                <div key={m.id} className={i > 0 ? 'border-t border-line' : ''}><MemberRow member={m} /></div>
+              ))}
+            </Card>
+          </section>
+        )}
       </div>
     </Screen>
   );
@@ -100,6 +174,32 @@ export function Administration() {
   const { t } = useLocale();
   const { id } = useParams();
   const nav = useNavigate();
+  const [leadership, setLeadership] = useState<Leader[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const { data, error } = await supabase.from('leaders').select('*').order('sort_order', { ascending: true });
+      if (!active) return;
+      if (error) {
+        setLeadership([]);
+        return;
+      }
+
+      setLeadership((data ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        role: row.role,
+        note: row.note ?? '',
+        photo: row.photo_url ?? undefined,
+      })));
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
+
   if (id) {
     const l = leadership.find((x) => x.id === id);
     if (!l) return <Screen back title={t('more.administration')}><EmptyState title="Not found" /></Screen>;
