@@ -233,7 +233,7 @@ export function Home() {
               {birthdays.map((m) => (
                 <button key={m.id} onClick={() => nav(`/members/${m.id}`)}
                   className="press flex w-[130px] shrink-0 flex-col items-center gap-2 rounded-[18px] border border-line bg-card p-3.5 text-center active:bg-card2">
-                  <Avatar name={m.name} size={56} />
+                  <Avatar name={m.name} src={m.photo} size={56} />
                   <p className="min-w-0 w-full overflow-hidden text-[13px] font-medium leading-tight text-ink [display:-webkit-box] [overflow-wrap:anywhere] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{m.name.replace('Fr. ', '')}</p>
                   <span className="inline-flex items-center gap-1 text-[12px] text-gold"><Cake size={13} /> {m.birthday}</span>
                 </button>

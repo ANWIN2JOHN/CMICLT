@@ -9,15 +9,14 @@ import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState } from '../../components/ui/states';
 import { useLocale } from '../../contexts/LocaleContext';
 import { whatsappLink } from '../../lib/contact';
-import { getInstitutionById, getInstitutions, getMembersByInstitution } from '../../services/memberService';
+import { getInstitutionById, getInstitutions, getMembersByInstitution, getChildInstitutions, getInstitutionResidentCount } from '../../services/memberService';
 import type { Institution, InstitutionCategory } from '../../data/types';
 
 const zones = ['Calicut', 'Wayanad', 'Malabar', 'Nilgiris', 'Mission'];
 
 const cats: Array<{ id: InstitutionCategory; key: any }> = [
   { id: 'house', key: 'inst.cat.house' }, { id: 'education', key: 'inst.cat.education' },
-  { id: 'social', key: 'inst.cat.social' }, { id: 'health', key: 'inst.cat.health' },
-  { id: 'pastoral', key: 'inst.cat.pastoral' }, { id: 'mission', key: 'inst.cat.mission' },
+  { id: 'social', key: 'inst.cat.social' },
 ];
 
 export function Institutions() {
@@ -54,7 +53,11 @@ export function Institutions() {
   }, []);
 
   const results = useMemo(() => institutions.filter((i) => {
-    if (query && !`${i.name} ${i.address} ${i.zone}`.toLowerCase().includes(query.toLowerCase())) return false;
+    if (query) {
+      if (!`${i.name} ${i.address} ${i.zone}`.toLowerCase().includes(query.toLowerCase())) return false;
+    } else {
+      if (i.parentInstitutionId !== null) return false;
+    }
     if (cat && i.category !== cat) return false;
     if (zone && i.zone !== zone) return false;
     return true;
@@ -105,13 +108,19 @@ export function InstitutionProfile() {
   const { id } = useParams();
   const [inst, setInst] = useState<Institution | null>(null);
   const [members, setMembers] = useState<Array<{ memberId: string; name: string; position: string | null }>>([]);
+  const [residentCount, setResidentCount] = useState<number>(0);
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
+
+  const [children, setChildren] = useState<Institution[]>([]);
+  const [parentInst, setParentInst] = useState<Institution | null>(null);
 
   useEffect(() => {
     if (!id) {
       setInst(null);
       setMembers([]);
+      setChildren([]);
+      setParentInst(null);
       setLoading(false);
       return;
     }
@@ -123,13 +132,23 @@ export function InstitutionProfile() {
       try {
         setLoading(true);
         setError(null);
-        const [institution, institutionMembers] = await Promise.all([
+        const [institution, institutionMembers, residents] = await Promise.all([
           getInstitutionById(institutionId),
           getMembersByInstitution(institutionId),
+          getInstitutionResidentCount(institutionId),
         ]);
         if (!active) return;
         setInst(institution);
         setMembers(institutionMembers);
+        setResidentCount(residents);
+        
+        if (institution?.parentInstitutionId) {
+          const parent = await getInstitutionById(institution.parentInstitutionId);
+          if (active) setParentInst(parent);
+        } else if (institution) {
+          const childInsts = await getChildInstitutions(institutionId);
+          if (active) setChildren(childInsts);
+        }
       } catch (err) {
         if (!active) return;
         setError(err instanceof Error ? err.message : 'Unable to load institution.');
@@ -162,7 +181,7 @@ export function InstitutionProfile() {
     <Screen back title={inst.name}>
       <img src={inst.photo || instImg} alt="" className="h-48 w-full rounded-[var(--r-card)] object-cover" />
       <h1 className="mt-4 font-head text-[23px] font-semibold text-ink">{inst.name}</h1>
-      <p className="mt-1 flex items-center gap-1.5 text-[14px] text-ink2"><MapPin size={15} /> {inst.address}</p>
+      {inst.address && <p className="mt-1 flex items-center gap-1.5 text-[14px] text-ink2"><MapPin size={15} /> {inst.address}</p>}
 
       <div className="mt-5 grid grid-cols-3 gap-3">
         <Button variant="secondary" onClick={() => (window.location.href = `tel:${inst.phone}`)} leftIcon={<Phone size={17} />}>{t('common.call')}</Button>
@@ -171,17 +190,22 @@ export function InstitutionProfile() {
       </div>
 
       <Card className="mt-5 divide-y divide-line p-0">
-        <Detail label={t('inst.type')} value={t(cats.find((c) => c.id === inst.category)!.key)} />
-        <Detail label={t('members.zone')} value={inst.zone} />
-        <Detail label={t('inst.year')} value={String(inst.year)} />
-        <Detail label={t('inst.head')} value={inst.head} />
-        <Detail label={t('inst.residents')} value={`${inst.residents}`} icon={<Users size={15} />} />
+        {inst.category && <Detail label={t('inst.type')} value={t(cats.find((c) => c.id === inst.category)?.key || inst.category)} />}
+        {inst.zone && <Detail label={t('members.zone')} value={inst.zone} />}
+        {inst.year > 0 && <Detail label={t('inst.year')} value={String(inst.year)} />}
+        {!inst.parentInstitutionId && inst.head && <Detail label={t('inst.head')} value={inst.head} />}
+        {!inst.parentInstitutionId && <Detail label={t('inst.residents')} value={`${residentCount}`} icon={<Users size={15} />} />}
+        {parentInst && <Detail label="Parent" value={parentInst.name} />}
       </Card>
 
-      <h2 className="mb-2 mt-5 text-[13px] font-semibold uppercase tracking-wide text-ink2">{t('inst.apostolates')}</h2>
-      <div className="flex flex-wrap gap-2">
-        {inst.apostolates.map((a) => <span key={a} className="rounded-[var(--r-pill)] bg-emeraldl px-3 py-1.5 text-[13px] font-medium text-emerald dark:text-ink">{a}</span>)}
-      </div>
+      {children.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-5 text-[13px] font-semibold uppercase tracking-wide text-ink2">{t('inst.apostolates')}</h2>
+          <div className="flex flex-wrap gap-2">
+            {children.map((a) => <button key={a.id} onClick={() => window.location.href = `/institutions/${a.id}`} className="rounded-[var(--r-pill)] bg-emeraldl px-3 py-1.5 text-[13px] font-medium text-emerald dark:text-ink">{a.name}</button>)}
+          </div>
+        </>
+      )}
 
       {members.length > 0 && (
         <div className="mt-6">
@@ -190,7 +214,7 @@ export function InstitutionProfile() {
             {members.map((member) => (
               <div key={member.memberId} className="rounded-[var(--r-card)] border border-line bg-card p-3">
                 <p className="text-[15px] font-medium text-ink">{member.name}</p>
-                <p className="mt-1 text-[13px] text-ink2">Position: {member.position || 'Not specified'}</p>
+                <p className="mt-1 text-[13px] text-ink2">{member.position || 'Not specified'}</p>
               </div>
             ))}
           </div>

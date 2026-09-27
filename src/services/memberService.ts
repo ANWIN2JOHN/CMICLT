@@ -583,6 +583,20 @@ export async function getChildInstitutions(parentInstitutionId: string): Promise
   return (data ?? []).map((row) => mapInstitutionRow(row as InstitutionRow));
 }
 
+export async function getInstitutionResidentCount(institutionId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('member_institutions')
+    .select('member_id')
+    .eq('institution_id', institutionId);
+
+  if (error) {
+    throw error;
+  }
+
+  const uniqueIds = new Set((data ?? []).map((row) => row.member_id));
+  return uniqueIds.size;
+}
+
 export async function getInstitutionMembers(institutionId: string): Promise<Array<{ memberId: string; name: string; position: string | null }>> {
   return getMembersByInstitution(institutionId);
 }

@@ -18,9 +18,6 @@ export function MemberCard({ member }: { member: Member }) {
         </div>
         <p className="break-words text-[14px] text-ink2">{member.role}</p>
         <p className="mt-0.5 break-words text-[13px] text-ink2/80">{member.house}</p>
-        <div className="mt-1.5">
-          <StatusChip tone="primary">{member.zone}</StatusChip>
-        </div>
       </div>
     </Card>
   );
@@ -107,7 +104,6 @@ export function InstitutionCard({ inst, list }: { inst: Institution; list?: bool
         <img src={inst.photo || instImg} alt="" className="h-14 w-14 shrink-0 rounded-[14px] object-cover" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-ink">{inst.name}</p>
-          <p className="mt-0.5 flex items-center gap-1 truncate text-[13px] text-ink2"><MapPin size={12} /> {inst.zone}</p>
         </div>
         <ChevronRight size={18} className="text-ink2" />
       </Card>
@@ -118,7 +114,6 @@ export function InstitutionCard({ inst, list }: { inst: Institution; list?: bool
       <img src={inst.photo || instImg} alt="" className="h-32 w-full object-cover" />
       <div className="p-3.5">
         <p className="line-clamp-2 font-medium leading-snug text-ink">{inst.name}</p>
-        <p className="mt-1 flex items-center gap-1 truncate text-[13px] text-ink2"><MapPin size={12} /> {inst.zone}</p>
       </div>
     </Card>
   );

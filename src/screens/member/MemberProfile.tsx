@@ -80,11 +80,6 @@ export function MemberProfile() {
         <h1 className="mt-4 font-head text-[24px] font-semibold text-ink">{member.name}</h1>
         <p className="mt-1 text-[15px] text-primary">{member.role}</p>
         <p className="mt-0.5 text-[14px] text-ink2">{member.house}</p>
-        {member.address ? (
-          <span className="mt-2 inline-flex items-center gap-1 rounded-[var(--r-pill)] bg-emeraldl px-3 py-1 text-[13px] font-medium text-emerald dark:text-ink">
-            <MapPin size={13} /> {member.address}
-          </span>
-        ) : null}
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
@@ -99,6 +94,8 @@ export function MemberProfile() {
         </InfoCard>
 
         <InfoCard title={t('members.personal')}>
+          {member.address && <Row label={t('inst.address')} value={member.address} />}
+          {member.zone && <Row label={t('members.zone')} value={member.zone as string} />}
           <Row icon={<Cake size={16} />} label={t('members.birthday')} value={member.birthday} />
           <Row icon={<Star size={16} />} label={t('members.feastDay')} value={`${member.feastDay} · ${member.feastName ?? ''}`.replace(/\s+·\s+$/, '').trim()} />
           <Row label={t('members.diocese')} value={member.diocese} />
@@ -117,7 +114,7 @@ export function MemberProfile() {
                 <div key={institution.id} className="rounded-[var(--r-card)] border border-line bg-card2 p-3">
                   <p className="text-[15px] font-medium text-ink">{institution.name}</p>
                   <p className="mt-1 text-[13px] text-ink2">
-                    <span className="font-medium text-ink">Position:</span> {institution.position || 'Not specified'}
+                    <span className="font-medium text-ink"></span> {institution.position || 'Not specified'}
                   </p>
                 </div>
               ))}

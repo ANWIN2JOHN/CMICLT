@@ -28,7 +28,6 @@ export function Members() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draft, setDraft] = useState<Filters>(emptyFilters);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [recent, setRecent] = useState<string[]>(['Wayanad', 'Principal', 'Fr. Thomas']);
 
   const loadMembers = useCallback(async () => {
     try {
@@ -89,14 +88,6 @@ export function Members() {
     }>
       <SearchField value={query} placeholder={t('members.searchPlaceholder')} onChange={(e) => setQuery(e.target.value)} />
 
-      {!query && !activeCount && recent.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-[13px] font-medium text-ink2">{t('members.recentSearches')}</p>
-          <div className="flex flex-wrap gap-2">
-            {recent.map((r) => <FilterChip key={r} onClick={() => setQuery(r)}>{r}</FilterChip>)}
-          </div>
-        </div>
-      )}
 
       {!loading && !error && (
         <p className="mt-4 text-[13px] text-ink2">{results.length} {t('common.results')}</p>
@@ -141,9 +132,7 @@ export function Members() {
             <Button fullWidth onClick={() => { setFilters(draft); setSheetOpen(false); }}>{t('common.apply')}</Button>
           </div>
         }>
-        <FilterGroup label={t('members.zone')}>
-          {zones.map((z) => <FilterChip key={z} active={draft.zone.includes(z as Zone)} onClick={() => toggle('zone', z as Zone)}>{z}</FilterChip>)}
-        </FilterGroup>
+
         <FilterGroup label={t('members.role')}>
           {roleOptions.map((r) => <FilterChip key={r} active={draft.role.includes(r)} onClick={() => toggle('role', r)}>{r}</FilterChip>)}
         </FilterGroup>
