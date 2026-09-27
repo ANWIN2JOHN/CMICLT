@@ -218,10 +218,6 @@ export function AuthProvider({
           member:members (
             id,
             name,
-            role,
-            house,
-            institution_id,
-            country,
             phone,
             email,
             birthday,
@@ -383,10 +379,6 @@ export function AuthProvider({
           member:members (
             id,
             name,
-            role,
-            house,
-            institution_id,
-            country,
             phone,
             email,
             birthday,

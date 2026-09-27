@@ -62,9 +62,7 @@ export async function getAdminAccounts() {
         id,
         name,
         email,
-        phone,
-        house,
-        role
+        phone
       )
     `)
     .order('status', { ascending: true });

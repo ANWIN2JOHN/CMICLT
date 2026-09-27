@@ -42,11 +42,11 @@ export interface MemberWithInstitutions extends Member {
 interface MemberRow {
   id: string;
   name: string;
-  role: string;
-  house: string | null;
-  institution_id: string | null;
+  role?: string;
+  house?: string | null;
+  institution_id?: string | null;
   zone: string | { name?: string | null } | null;
-  country: string | null;
+  country?: string | null;
   phone: string | null;
   email: string | null;
   birthday: string | null;
@@ -154,7 +154,7 @@ function mapMemberRow(row: MemberRow): Member {
   return {
     id: row.id,
     name: row.name,
-    role: row.role,
+    role: row.role ?? '',
     house: row.house ?? '',
     institution: undefined,
     address: row.address ?? '',
@@ -212,10 +212,6 @@ export async function getMembers(): Promise<Member[]> {
     .select(`
       id,
       name,
-      role,
-      house,
-      institution_id,
-      country,
       phone,
       email,
       birthday,
@@ -260,10 +256,6 @@ export async function searchMembers(query: string): Promise<Member[]> {
     .select(`
       id,
       name,
-      role,
-      house,
-      institution_id,
-      country,
       phone,
       email,
       birthday,
@@ -303,10 +295,6 @@ export async function getMemberById(id: string): Promise<MemberWithInstitutions 
     .select(`
       id,
       name,
-      role,
-      house,
-      institution_id,
-      country,
       phone,
       email,
       birthday,
@@ -526,8 +514,6 @@ export async function getMembersByInstitution(institutionId: string): Promise<Ar
       id,
       name,
       recordical_name,
-      role,
-      house,
       photo_url
     `)
     .in('id', memberIds)
