@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Building2, LayoutGrid, List, MapPin, MessageCircle, Phone, Users } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
 import { SearchField } from '../../components/ui/Input';
@@ -106,6 +106,7 @@ const instImg = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?au
 export function InstitutionProfile() {
   const { t } = useLocale();
   const { id } = useParams();
+  const nav = useNavigate();
   const [inst, setInst] = useState<Institution | null>(null);
   const [members, setMembers] = useState<Array<{ memberId: string; name: string; position: string | null }>>([]);
   const [residentCount, setResidentCount] = useState<number>(0);
@@ -195,14 +196,27 @@ export function InstitutionProfile() {
         {inst.year > 0 && <Detail label={t('inst.year')} value={String(inst.year)} />}
         {!inst.parentInstitutionId && inst.head && <Detail label={t('inst.head')} value={inst.head} />}
         {!inst.parentInstitutionId && <Detail label={t('inst.residents')} value={`${residentCount}`} icon={<Users size={15} />} />}
-        {parentInst && <Detail label="Parent" value={parentInst.name} />}
+        {parentInst && (
+          <Detail
+            label="Parent"
+            value={(
+              <button onClick={() => nav(`/institutions/${parentInst.id}`)} className="text-[15px] font-medium text-ink hover:underline">
+                {parentInst.name}
+              </button>
+            )}
+          />
+        )}
       </Card>
 
       {children.length > 0 && (
         <>
           <h2 className="mb-2 mt-5 text-[13px] font-semibold uppercase tracking-wide text-ink2">{t('inst.apostolates')}</h2>
           <div className="flex flex-wrap gap-2">
-            {children.map((a) => <button key={a.id} onClick={() => window.location.href = `/institutions/${a.id}`} className="rounded-[var(--r-pill)] bg-emeraldl px-3 py-1.5 text-[13px] font-medium text-emerald dark:text-ink">{a.name}</button>)}
+            {children.map((a) => (
+              <button key={a.id} onClick={() => nav(`/institutions/${a.id}`)} className="rounded-[var(--r-pill)] bg-emeraldl px-3 py-1.5 text-[13px] font-medium text-emerald dark:text-ink">
+                {a.name}
+              </button>
+            ))}
           </div>
         </>
       )}
@@ -223,7 +237,7 @@ export function InstitutionProfile() {
     </Screen>
   );
 }
-function Detail({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
+function Detail({ label, value, icon }: { label: string; value: React.ReactNode; icon?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3">
       <span className="text-[14px] text-ink2">{label}</span>
