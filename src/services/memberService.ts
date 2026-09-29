@@ -141,6 +141,7 @@ function mapInstitutionRow(row: InstitutionRow): Institution {
     head: '',
     residents: row.residents ?? 0,
     photo: row.photo_url ?? undefined,
+    photo_url: row.photo_url ?? null,
     entityType: row.entity_type ?? undefined,
     parentInstitutionId: row.parent_institution_id ?? null,
   };
@@ -656,3 +657,50 @@ export async function getHouseList(): Promise<HouseListEntry[]> {
   });
 }
 
+export interface AdminMember {
+  id: string;
+  name: string;
+  position: string;
+  phone: string;
+  email: string;
+  photo_url: string | null;
+}
+
+export async function getStThomasAdministrationMembers(): Promise<AdminMember[]> {
+  // We query member_assignments to find the current active administration assignments explicitly.
+  const { data, error } = await supabase
+    .from('member_assignments')
+    .select(`
+      role,
+      member:members!inner(id, name, phone, email, photo_url)
+    `)
+    .eq('place', 'St. Thomas Province Administration')
+    .is('to_date', null);
+
+  if (error) {
+    throw error;
+  }
+
+  const raw = (data ?? []) as any[];
+  
+  const members = raw.map(d => ({
+    id: d.member.id,
+    name: d.member.name,
+    position: d.role || '',
+    phone: d.member.phone || '',
+    email: d.member.email || '',
+    photo_url: d.member.photo_url || null,
+  }));
+
+  // Sort them according to the standard hierarchy
+  const getRank = (pos: string) => {
+    const p = pos.toLowerCase();
+    if (p === 'provincial') return 1;
+    if (p.includes('vicar provincial')) return 2;
+    if (p.includes('councillor')) return 3;
+    if (p.includes('auditor')) return 4;
+    return 5;
+  };
+
+  return members.sort((a, b) => getRank(a.position) - getRank(b.position));
+}

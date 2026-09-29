@@ -167,12 +167,6 @@ export function Home() {
   const upcoming = upcomingEvents.filter((e) => e.category !== 'birthday').slice(0, 4);
   const recent = members.slice(0, 4);
 
-  const quick = [
-    { label: t('home.findMember'), icon: Search, to: '/members' },
-    { label: t('nav.events'), icon: CalendarDays, to: '/events' },
-    { label: t('nav.institutions'), icon: Landmark, to: '/institutions' },
-    { label: t('home.myProfile'), icon: User, to: '/account' },
-  ];
 
   return (
     <div className="anim-fade-up mx-auto w-full max-w-[880px] pb-4">
@@ -199,19 +193,7 @@ export function Home() {
           </div>
         </Card>
 
-        {/* Quick actions */}
-        <section>
-          <SectionHeader title={t('home.quickActions')} />
-          <div className="grid grid-cols-4 gap-2.5">
-            {quick.map((q) => (
-              <button key={q.label} onClick={() => nav(q.to)}
-                className="press flex flex-col items-center gap-2 rounded-[18px] border border-line bg-card p-3 active:bg-card2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emeraldl text-emerald"><q.icon size={21} /></span>
-                <span className="text-center text-[11.5px] font-medium leading-tight text-ink">{q.label}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+
 
         {/* Birthdays */}
         <section>

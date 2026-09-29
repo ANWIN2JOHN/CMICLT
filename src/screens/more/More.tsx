@@ -21,7 +21,7 @@ export function More() {
 
   // CMI Information: grouped categories + the existing Vocation entry.
   const infoItems: MenuItem[] = [
-    ...MORE_CATEGORIES.map((c) => ({ icon: c.icon, label: c.title, to: `/more/${c.slug}` })),
+    ...MORE_CATEGORIES.filter(c => c.slug !== 'leadership').map((c) => ({ icon: c.icon, label: c.title, to: `/more/${c.slug}` })),
     { icon: Sparkles, label: 'Vocation', to: '/vocation' },
   ];
   const accountItems: MenuItem[] = [

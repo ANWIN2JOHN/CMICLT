@@ -1,4 +1,4 @@
-import { CalendarDays, Home, Landmark, MoreHorizontal, Users } from 'lucide-react';
+import { Home, Landmark, MoreHorizontal, Users, Users2 } from 'lucide-react';
 import type { TranslationKey } from '../i18n/en';
 
 export interface NavItem {
@@ -10,10 +10,10 @@ export interface NavItem {
 
 export const primaryNav: NavItem[] = [
   { to: '/home', labelKey: 'nav.home', icon: Home, match: (p) => p === '/home' },
+  { to: '/more/leadership', labelKey: 'nav.administration', icon: Users2, match: (p) => p.startsWith('/more/leadership') },
   { to: '/members', labelKey: 'nav.members', icon: Users, match: (p) => p.startsWith('/members') },
-  { to: '/events', labelKey: 'nav.events', icon: CalendarDays, match: (p) => p.startsWith('/events') },
   { to: '/institutions', labelKey: 'nav.institutions', icon: Landmark, match: (p) => p.startsWith('/institutions') },
-  { to: '/more', labelKey: 'nav.more', icon: MoreHorizontal, match: (p) => p.startsWith('/more') || isMoreSection(p) },
+  { to: '/more', labelKey: 'nav.more', icon: MoreHorizontal, match: (p) => (p.startsWith('/more') && !p.startsWith('/more/leadership')) || isMoreSection(p) },
 ];
 
 const moreSections = ['/province', '/about', '/administration', '/news', '/gallery', '/vocation', '/chavarul', '/contact', '/account', '/settings'];

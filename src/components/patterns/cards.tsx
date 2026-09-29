@@ -101,7 +101,7 @@ export function InstitutionCard({ inst, list }: { inst: Institution; list?: bool
   if (list) {
     return (
       <Card onClick={() => nav(`/institutions/${inst.id}`)} className="flex items-center gap-3.5 p-3.5">
-        <img src={inst.photo || instImg} alt="" className="h-14 w-14 shrink-0 rounded-[14px] object-cover" />
+        <img src={inst.photo_url ?? inst.photo ?? instImg} alt="" className="h-14 w-14 shrink-0 rounded-[14px] object-cover" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-ink">{inst.name}</p>
         </div>
@@ -111,7 +111,7 @@ export function InstitutionCard({ inst, list }: { inst: Institution; list?: bool
   }
   return (
     <Card onClick={() => nav(`/institutions/${inst.id}`)} className="overflow-hidden">
-      <img src={inst.photo || instImg} alt="" className="h-32 w-full object-cover" />
+      <img src={inst.photo_url ?? inst.photo ?? instImg} alt="" className="h-32 w-full object-cover" />
       <div className="p-3.5">
         <p className="line-clamp-2 font-medium leading-snug text-ink">{inst.name}</p>
       </div>

@@ -180,7 +180,7 @@ export function InstitutionProfile() {
 
   return (
     <Screen back title={inst.name}>
-      <img src={inst.photo || instImg} alt="" className="h-48 w-full rounded-[var(--r-card)] object-cover" />
+      <img src={inst.photo_url ?? inst.photo ?? instImg} alt="" className="h-48 w-full rounded-[var(--r-card)] object-cover" />
       <h1 className="mt-4 font-head text-[23px] font-semibold text-ink">{inst.name}</h1>
       {inst.address && <p className="mt-1 flex items-center gap-1.5 text-[14px] text-ink2"><MapPin size={15} /> {inst.address}</p>}
 

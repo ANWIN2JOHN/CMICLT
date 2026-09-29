@@ -57,12 +57,23 @@ import {
   Contact,
 } from './screens/province/MediaPages';
 
+import { ProvincialAdministrations } from './screens/province/ProvincialAdministrations';
+import { StThomasAdministration } from './screens/province/StThomasAdministration';
+import { CMIGeneralAdministrationScreen } from './screens/province/CMIGeneralAdministration';
+
 // More
 import { More } from './screens/more/More';
 import {
   MoreCategory,
   MoreCategoryItem,
 } from './screens/more/MoreCategories';
+import { CmiExternalAdministrationList } from './screens/more/CmiExternalAdministrationList';
+import { CmiExternalAdministrations } from './screens/more/CmiExternalAdministrations';
+import { DepartmentCouncils } from './screens/more/DepartmentCouncils';
+import { DepartmentCouncilMembers } from './screens/more/DepartmentCouncilMembers';
+import { KristuRajaSubRegion } from './screens/more/KristuRajaSubRegion';
+import { ZoneList } from './screens/more/ZoneList';
+import { ZoneProfile } from './screens/more/ZoneProfile';
 
 import { Account } from './screens/more/Account';
 import { Settings } from './screens/more/Settings';
@@ -250,6 +261,21 @@ export default function App() {
                   />
 
                   <Route
+                    path="/provincial-administrations"
+                    element={<ProvincialAdministrations />}
+                  />
+
+                  <Route
+                    path="/st-thomas-administration"
+                    element={<StThomasAdministration />}
+                  />
+
+                  <Route
+                    path="/cmi-general-administration"
+                    element={<CMIGeneralAdministrationScreen />}
+                  />
+
+                  <Route
                     path="/gallery"
                     element={<Gallery />}
                   />
@@ -277,6 +303,71 @@ export default function App() {
                   <Route
                     path="/more"
                     element={<More />}
+                  />
+
+                  <Route
+                    path="/more/leadership/external-administrations"
+                    element={<CmiExternalAdministrations />}
+                  />
+
+                  <Route
+                    path="/more/leadership/external-administrations/coordinators-abroad"
+                    element={<CmiExternalAdministrationList category="COORDINATOR_ABROAD" title="Coordinators Abroad" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/external-administrations/regionals"
+                    element={<CmiExternalAdministrationList category="REGIONAL" title="Regionals" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/external-administrations/subregionals"
+                    element={<CmiExternalAdministrationList category="SUBREGIONAL" title="Subregionals" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/department-councils"
+                    element={<DepartmentCouncils />}
+                  />
+
+                  <Route
+                    path="/more/leadership/department-councils/religious-life-formation-administration"
+                    element={<DepartmentCouncilMembers departmentPlace="Department Councils — Religious Life, Formation and Administration" title="Religious Life, Formation and Administration" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/department-councils/evangelization-pastoral-ministry"
+                    element={<DepartmentCouncilMembers departmentPlace="Department Councils — Evangelization and Pastoral Ministry" title="Evangelization and Pastoral Ministry" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/department-councils/education-communication-media"
+                    element={<DepartmentCouncilMembers departmentPlace="Department Councils — Education and Communication Media" title="Education and Communication Media" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/department-councils/social-apostolate-healthcare"
+                    element={<DepartmentCouncilMembers departmentPlace="Department Councils — Social Apostolate and Healthcare" title="Social Apostolate and Healthcare" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/department-councils/finance-agriculture"
+                    element={<DepartmentCouncilMembers departmentPlace="Department Councils — Finance and Agriculture" title="Finance and Agriculture" />}
+                  />
+
+                  <Route
+                    path="/more/leadership/kristu-raja-sub-region"
+                    element={<KristuRajaSubRegion />}
+                  />
+
+                  <Route
+                    path="/more/leadership/zones"
+                    element={<ZoneList />}
+                  />
+
+                  <Route
+                    path="/more/leadership/zones/:id"
+                    element={<ZoneProfile />}
                   />
 
                   <Route
