@@ -57,7 +57,7 @@ import {
   Contact,
 } from './screens/province/MediaPages';
 
-import { ProvincialAdministrations } from './screens/province/ProvincialAdministrations';
+import { ProvincialAdministrations, ProvincialAdministrationDetail } from './screens/province/ProvincialAdministrations';
 import { StThomasAdministration } from './screens/province/StThomasAdministration';
 import { CMIGeneralAdministrationScreen } from './screens/province/CMIGeneralAdministration';
 
@@ -263,6 +263,11 @@ export default function App() {
                   <Route
                     path="/provincial-administrations"
                     element={<ProvincialAdministrations />}
+                  />
+
+                  <Route
+                    path="/provincial-administrations/:provinceName"
+                    element={<ProvincialAdministrationDetail />}
                   />
 
                   <Route
