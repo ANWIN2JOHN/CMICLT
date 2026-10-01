@@ -9,6 +9,9 @@ export const en = {
   'nav.members': 'Members',
   'nav.events': 'Events',
   'nav.institutions': 'Institutions',
+  'nav.formation': 'Members & Formation',
+  'nav.scholastics': 'Scholastics',
+  'nav.departed': 'Our Departed Members',
   'nav.more': 'More',
   'nav.admin': 'Admin',
 

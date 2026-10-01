@@ -7,6 +7,7 @@ import { Avatar, Card, SectionHeader, StatusChip, Skeleton } from '../../compone
 import { EventCard, MemberRow, NewsCard } from '../../components/patterns/cards';
 import { IconButton } from '../../components/ui/Button';
 import { ErrorState } from '../../components/ui/states';
+import { HamburgerMenu } from '../../components/navigation/HamburgerMenu';
 import { supabase } from '../../lib/supabase';
 import { getMembers } from '../../services/memberService';
 import type { CmiEvent, Member, NewsArticle } from '../../data/types';
@@ -172,6 +173,7 @@ export function Home() {
     <div className="anim-fade-up mx-auto w-full max-w-[880px] pb-4">
       {/* Header */}
       <header className="flex items-start gap-3 px-4 pt-[calc(18px+var(--safe-top))] md:px-6">
+        <HamburgerMenu />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] text-ink2">{t(greetKey)}</p>
           <p className="mt-0.5 truncate font-head text-[24px] font-semibold leading-tight text-ink">{name}</p>

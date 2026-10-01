@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LogoLockup, LogoMark } from '../components/Logo';
 import { Avatar } from '../components/ui/primitives';
 import { Dialog } from '../components/ui/overlays';
+import { HamburgerMenu } from '../components/navigation/HamburgerMenu';
 import { cn } from '../lib/cn';
 
 export function AppShell() {
@@ -166,12 +167,13 @@ export function Screen({ title, back, right, children, hero }: {
     <div className="anim-fade-up min-h-full">
       {(title || back) && !hero && (
         <header className="sticky top-0 z-30 flex items-center gap-1 border-b border-line bg-bg/90 px-2 pb-2.5 pt-[calc(10px+var(--safe-top))] backdrop-blur md:px-4">
+          <HamburgerMenu />
           {back && (
             <button aria-label="Back" onClick={() => nav(-1)} className="flex h-11 w-11 items-center justify-center rounded-full text-ink active:bg-card2">
               <ChevronLeft size={24} />
             </button>
           )}
-          <h1 className={cn('flex-1 truncate font-head text-[20px] font-semibold text-ink', !back && 'pl-3')}>{title}</h1>
+          <h1 className={cn('flex-1 truncate font-head text-[20px] font-semibold text-ink', (!back) && 'pl-3')}>{title}</h1>
           {right}
         </header>
       )}

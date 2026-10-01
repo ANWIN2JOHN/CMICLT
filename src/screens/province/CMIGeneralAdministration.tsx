@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Mail, Phone } from 'lucide-react';
 import { Screen } from '../../layouts/AppShell';
 import { Card, Avatar, Skeleton } from '../../components/ui/primitives';
-import { BottomSheet } from '../../components/ui/overlays';
+import { PhoneActionSheet, usePhoneAction } from '../../components/patterns/PhoneAction';
 import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState } from '../../components/ui/states';
 import { getCMIGeneralAdministration } from '../../services/cmiGeneralAdministrationService';
@@ -12,7 +12,7 @@ export function CMIGeneralAdministrationScreen() {
   const [data, setData] = useState<CMIGeneralAdministration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [contactPhone, setContactPhone] = useState<{ number: string, name: string } | null>(null);
+  const { contactPhone, setContactPhone, handlePhoneTap } = usePhoneAction();
 
   useEffect(() => {
     let active = true;
@@ -64,24 +64,7 @@ export function CMIGeneralAdministrationScreen() {
     );
   }
 
-  const handlePhoneTap = (number: string, name: string) => {
-    setContactPhone({ number, name });
-  };
 
-  const handleCall = () => {
-    if (contactPhone) {
-      window.location.href = `tel:${contactPhone.number.replace(/\\s+/g, '')}`;
-      setContactPhone(null);
-    }
-  };
-
-  const handleWhatsApp = () => {
-    if (contactPhone) {
-      const cleanNumber = contactPhone.number.replace(/\\D/g, '');
-      window.location.href = `https://wa.me/${cleanNumber}`;
-      setContactPhone(null);
-    }
-  };
 
   return (
     <Screen back title="CMI General Administration">
@@ -129,23 +112,7 @@ export function CMIGeneralAdministrationScreen() {
         ))}
       </div>
 
-      <BottomSheet 
-        open={contactPhone !== null} 
-        onClose={() => setContactPhone(null)}
-        title={contactPhone ? contactPhone.name : ''}
-      >
-        <div className="space-y-3 pt-2">
-          <Button fullWidth onClick={handleCall}>
-            Call {contactPhone?.number}
-          </Button>
-          <Button fullWidth variant="outline" onClick={handleWhatsApp}>
-            WhatsApp
-          </Button>
-          <Button fullWidth variant="outline" onClick={() => setContactPhone(null)}>
-            Cancel
-          </Button>
-        </div>
-      </BottomSheet>
+      <PhoneActionSheet contactPhone={contactPhone} onClose={() => setContactPhone(null)} />
     </Screen>
   );
 }

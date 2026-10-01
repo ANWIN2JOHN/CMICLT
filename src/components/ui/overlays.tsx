@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useLockBodyScroll } from '../../lib/hooks';
@@ -15,9 +16,9 @@ export function BottomSheet({ open, onClose, title, children, footer }: {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label={title}>
+  if (!open || typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-black/45 anim-fade-up" onClick={onClose} />
       <div className="anim-sheet-up relative flex max-h-[88vh] w-full flex-col rounded-t-[var(--r-card)] bg-card md:mx-4 md:max-w-[520px] md:rounded-[var(--r-card)]">
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-line md:hidden" />
@@ -32,7 +33,8 @@ export function BottomSheet({ open, onClose, title, children, footer }: {
         <div className={cn('flex-1 overflow-y-auto px-5', footer ? 'pb-4' : 'pb-[calc(16px+var(--safe-bottom))]')}>{children}</div>
         {footer && <div className="border-t border-line px-5 py-3 pb-[calc(12px+var(--safe-bottom))]">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -42,9 +44,9 @@ export function Dialog({ open, onClose, title, body, confirmLabel = 'Confirm', c
   confirmLabel?: string; cancelLabel?: string; danger?: boolean; onConfirm: () => void;
 }) {
   useLockBodyScroll(open);
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6" role="dialog" aria-modal="true">
+  if (!open || typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/45" onClick={onClose} />
       <div className="anim-scale-in relative w-full max-w-[400px] rounded-[var(--r-card)] bg-card p-6 shadow-[var(--shadow-lg)]">
         <h2 className="text-[19px] font-semibold text-ink">{title}</h2>
@@ -56,7 +58,8 @@ export function Dialog({ open, onClose, title, body, confirmLabel = 'Confirm', c
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
