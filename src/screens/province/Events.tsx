@@ -249,7 +249,7 @@ export function EventDetail() {
   }, []);
 
   const e = eventList.find((x) => x.id === id);
-  if (!e) return <Screen title={t('events.title')} back><EmptyState title="Not found" /></Screen>;
+  if (!e) return <Screen title={t('events.title')} back><EmptyState title="Not found" body="This item may have been removed or is no longer available." /></Screen>;
   const d = new Date(e.date);
   return (
     <div className="relative min-h-full pb-[calc(88px+var(--safe-bottom))]">

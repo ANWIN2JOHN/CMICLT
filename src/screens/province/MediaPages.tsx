@@ -118,11 +118,11 @@ export function Vocation() {
   return (
     <Screen back title={t('vocation.title')}>
       <div className="overflow-hidden rounded-[var(--r-card)]">
-        <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1000&q=60" alt="" className="h-40 w-full object-cover" />
+        <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1000&q=60" alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} className="h-40 w-full object-cover" />
       </div>
       <p className="mt-5 text-[16px] leading-relaxed text-ink">Is God calling you to a life of prayer, community and service? We would love to walk with you.</p>
 
-      <div className="mt-6 grid gap-3 md:grid-cols-3">
+      <div className="mb-6 mt-6 grid gap-3 md:grid-cols-3">
         {pillars.map((p) => (
           <Card key={p.key} className="p-4">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emeraldl text-emerald"><p.icon size={22} /></span>
@@ -214,6 +214,13 @@ export function Chavarul() {
     );
   }
   const featured = reflections[0];
+  if (!featured) {
+    return (
+      <Screen back title={t('chavarul.title')}>
+        <EmptyState title="No reflections yet" body="There are no reflections available right now." />
+      </Screen>
+    );
+  }
   return (
     <Screen back title={t('chavarul.title')}>
       <p className="mb-4 text-[13px] font-semibold uppercase tracking-wide text-ink2">{t('chavarul.featured')}</p>
@@ -246,10 +253,10 @@ export function Contact() {
       <Card className="p-5">
         <h2 className="font-head text-[19px] font-semibold text-ink">Provincial House</h2>
         <p className="mt-1.5 text-[15px] leading-relaxed text-ink2">{addr}</p>
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           <Button variant="secondary" onClick={() => (window.location.href = 'tel:+914952701234')}>{t('common.call')}</Button>
           <Button variant="secondary" onClick={() => window.open(whatsappLink('+914952701234'), '_blank')}>{t('common.whatsapp')}</Button>
-          <Button variant="secondary" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`)}>{t('common.openMap')}</Button>
+          <Button variant="secondary" className="whitespace-nowrap px-2" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`)}>{t('common.openMap')}</Button>
         </div>
         <p className="mt-4 text-[13px] text-ink2"><span className="font-medium text-ink">{t('contact.officeHours')}:</span> Mon–Sat, 9:00 AM – 5:00 PM</p>
       </Card>

@@ -22,7 +22,7 @@ const hamburgerNav = [
   }},
 ];
 
-export function HamburgerMenu() {
+export function HamburgerMenu({ inverted = false }: { inverted?: boolean }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { t } = useLocale();
@@ -47,7 +47,10 @@ export function HamburgerMenu() {
         aria-label={open ? "Close navigation menu" : "Open navigation menu"}
         aria-expanded={open}
         onClick={() => setOpen(true)} 
-        className="flex h-11 w-11 items-center justify-center rounded-full text-ink active:bg-card2 transition-colors focus:ring-2 focus:ring-primary focus:outline-none shrink-0"
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+          inverted ? "text-white active:bg-white/10" : "text-ink active:bg-card2",
+        )}
       >
         <Menu size={24} />
       </button>

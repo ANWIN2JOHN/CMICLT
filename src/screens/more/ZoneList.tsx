@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, ChevronRight } from 'lucide-react';
-import { Screen } from '../../layouts/AppShell';
-import { Card, Skeleton } from '../../components/ui/primitives';
+import { Map } from 'lucide-react';
 import { EmptyState, ErrorState } from '../../components/ui/states';
+import {
+  AdministrationMenu,
+  AdministrationSkeletons,
+  LeadershipScreen,
+} from '../../components/patterns/AdministrationUI';
 import { getZones, Zone } from '../../services/zoneService';
 
 export function ZoneList() {
@@ -35,52 +38,47 @@ export function ZoneList() {
 
   if (error) {
     return (
-      <Screen back title="Zones of St. Thomas Province">
+      <LeadershipScreen title="Zones of St. Thomas Province">
         <ErrorState 
           title="Unable to load zones." 
           body="Please check your connection and try again."
         />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (loading) {
     return (
-      <Screen back title="Zones of St. Thomas Province">
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-14 w-full" />
-          ))}
-        </div>
-      </Screen>
+      <LeadershipScreen title="Zones of St. Thomas Province">
+        <div className="pt-3"><AdministrationSkeletons count={6} compact /></div>
+      </LeadershipScreen>
     );
   }
 
   if (data.length === 0) {
     return (
-      <Screen back title="Zones of St. Thomas Province">
+      <LeadershipScreen title="Zones of St. Thomas Province">
         <EmptyState title="No zones available." />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   return (
-    <Screen back title="Zones of St. Thomas Province">
-      <Card className="overflow-hidden p-0">
-        {data.map((zone, i) => (
-          <button 
-            key={zone.id} 
-            onClick={() => navigate(`/more/leadership/zones/${zone.id}`)}
-            className={`press flex w-full items-center gap-3.5 px-4 py-4 text-left active:bg-card2 ${i > 0 ? 'border-t border-line' : ''}`}
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emeraldl text-emerald">
-              <Map size={20} />
-            </span>
-            <span className="flex-1 text-[15px] font-medium leading-snug text-ink">{zone.name}</span>
-            <ChevronRight size={18} className="shrink-0 text-ink2" />
-          </button>
-        ))}
-      </Card>
-    </Screen>
+    <LeadershipScreen
+      title="Zones of St. Thomas Province"
+      description="Browse zone leadership, lead houses and member institutions across the province."
+    >
+      <div className="pt-3">
+        <AdministrationMenu
+          items={data.map((zone) => ({
+            label: zone.name,
+            to: `/more/leadership/zones/${zone.id}`,
+            icon: Map,
+            description: 'View zone administration and houses',
+          }))}
+          onSelect={navigate}
+        />
+      </div>
+    </LeadershipScreen>
   );
 }

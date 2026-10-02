@@ -79,42 +79,44 @@ export function Members() {
     });
 
   return (
+    <div className="pb-6">
     <Screen title={t('members.title')} right={
       <button onClick={openSheet} aria-label={t('common.filters')}
-        className="press relative mr-1 flex h-11 min-w-[44px] items-center gap-1.5 rounded-full px-3 text-[14px] font-medium text-ink active:bg-card2">
-        <SlidersHorizontal size={19} /> {t('common.filters')}
-        {activeCount > 0 && <span className="rounded-full bg-primary px-1.5 text-[12px] text-onprimary">{activeCount}</span>}
+        className={`press relative mr-1 flex h-11 min-w-[44px] items-center gap-2 rounded-full border px-4 text-[14px] font-semibold shadow-[0_2px_8px_-3px_rgba(8,72,59,0.18)] transition-[border-color,box-shadow] duration-150 outline-none hover:border-[color-mix(in_srgb,var(--c-primary)_30%,var(--c-border))] active:bg-card2 focus-visible:ring-[3px] focus-visible:ring-[var(--c-ring)] ${activeCount > 0 ? 'border-[color-mix(in_srgb,var(--c-primary)_35%,var(--c-border))] bg-emeraldl text-primary' : 'border-line bg-card text-ink'}`}>
+        <SlidersHorizontal size={17} aria-hidden className="text-primary" /> {t('common.filters')}
+        {activeCount > 0 && <span className="min-w-[20px] rounded-full bg-primary px-1.5 text-center text-[12px] leading-5 text-onprimary">{activeCount}</span>}
       </button>
     }>
-      <SearchField value={query} placeholder={t('members.searchPlaceholder')} onChange={(e) => setQuery(e.target.value)} />
+      <SearchField className="mt-1 [&_input]:min-h-[54px] [&_input]:rounded-[17px] [&_input]:border-[color-mix(in_srgb,var(--c-primary)_20%,var(--c-border))] [&_input]:pl-12 [&_input]:shadow-[0_4px_16px_-8px_rgba(8,72,59,0.22)] [&_input]:placeholder:text-ink2/75 [&_svg]:left-4 [&_svg]:text-primary" aria-label={t('members.searchPlaceholder')} value={query} placeholder={t('members.searchPlaceholder')} onChange={(e) => setQuery(e.target.value)} />
 
 
       {!loading && !error && (
-        <p className="mt-4 text-[13px] text-ink2">{results.length} {t('common.results')}</p>
+        <p aria-live="polite" className="mb-3.5 mt-6 flex items-baseline gap-2 px-1">
+          <span aria-hidden className="mb-[3px] h-[3px] w-4 self-center rounded-full bg-gold" />
+          <span className="font-head text-[22px] font-semibold leading-none text-primary tabular-nums">{results.length}</span>
+          <span className="text-[13.5px] font-medium text-ink2">{t('members.title')}</span>
+        </p>
       )}
 
       {loading ? (
-        <div className="mt-3 grid gap-2.5 md:grid-cols-2">
+        <div className="mt-[52px] grid gap-3 md:grid-cols-2" aria-busy="true">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="rounded-[var(--r-card)] border border-line bg-card p-3.5">
-              <div className="flex items-start gap-3.5">
-                <Skeleton className="h-[54px] w-[54px] rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-3/5" />
-                  <Skeleton className="h-3 w-2/5" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
+            <div key={index} className="flex min-h-[88px] items-center gap-4 rounded-[20px] border border-line bg-card px-4 py-3.5 md:min-h-[92px]">
+              <Skeleton className="h-[62px] w-[62px] shrink-0 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/5" />
+                <Skeleton className="h-4 w-2/5" />
               </div>
             </div>
           ))}
         </div>
       ) : error ? (
-        <div className="mt-4">
+        <div className="mt-6">
           <ErrorState title="Unable to load members" body={error} onRetry={() => { void loadMembers(); }} />
         </div>
       ) : (
         <>
-          <div className="mt-2 grid gap-2.5 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             {results.map((m) => <MemberCard key={m.id} member={m} />)}
           </div>
 
@@ -141,6 +143,7 @@ export function Members() {
         </FilterGroup>
       </BottomSheet>
     </Screen>
+    </div>
   );
 }
 

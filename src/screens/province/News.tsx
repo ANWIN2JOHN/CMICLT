@@ -123,7 +123,7 @@ export function NewsArticle() {
   }, []);
 
   const a = news.find((n) => n.id === id);
-  if (!a) return <Screen title={t('news.title')} back><EmptyState title="Not found" /></Screen>;
+  if (!a) return <Screen title={t('news.title')} back><EmptyState title="Not found" body="This item may have been removed or is no longer available." /></Screen>;
   const related = news.filter((n) => n.category === a.category && n.id !== a.id).slice(0, 3);
 
   return (

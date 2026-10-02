@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Mail, Phone } from 'lucide-react';
-import { Screen } from '../../layouts/AppShell';
-import { Card, Avatar, Skeleton } from '../../components/ui/primitives';
-import { Button } from '../../components/ui/Button';
 import { PhoneActionSheet, usePhoneAction } from '../../components/patterns/PhoneAction';
 import { EmptyState, ErrorState } from '../../components/ui/states';
+import {
+  AdministrationMemberCard,
+  AdministrationSectionHeading,
+  AdministrationSkeletons,
+  LeadershipScreen,
+} from '../../components/patterns/AdministrationUI';
 import { getDepartmentCouncilMembers, DepartmentCouncilMember } from '../../services/cmiDepartmentCouncilService';
 
 interface DepartmentCouncilMembersProps {
@@ -41,40 +43,38 @@ export function DepartmentCouncilMembers({ departmentPlace, title }: DepartmentC
 
   if (error) {
     return (
-      <Screen back title={title}>
+      <LeadershipScreen title={title}>
         <ErrorState 
           title="Unable to load members." 
           body="Please check your connection and try again."
         />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (loading) {
     return (
-      <Screen back title={title}>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-28 w-full" />
-          ))}
-        </div>
-      </Screen>
+      <LeadershipScreen title={title}>
+        <div className="pt-3"><AdministrationSkeletons count={3} /></div>
+      </LeadershipScreen>
     );
   }
 
   if (data.length === 0) {
     return (
-      <Screen back title={title}>
+      <LeadershipScreen title={title}>
         <EmptyState title="No members available." />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
 
 
   return (
-    <Screen back title={title}>
-      <div className="space-y-3">
+    <LeadershipScreen title={title} description={`Members serving the ${title} department council.`}>
+      <div className="pt-3">
+        <AdministrationSectionHeading title="Council Members" detail={`${data.length} members`} />
+        <div className="grid gap-3 md:grid-cols-2">
         {data.map((m) => {
           // Some members have multiple comma-separated phones/emails.
           // Fallback parsing just in case, though usually it's one string in the DB.
@@ -84,46 +84,21 @@ export function DepartmentCouncilMembers({ departmentPlace, title }: DepartmentC
           const emails = m.member.email ? m.member.email.split(',').map(e => e.trim()).filter(Boolean) : [];
 
           return (
-            <Card key={m.id} className="p-4">
-              <div className="flex items-start gap-4">
-                <Avatar name={m.member.name} src={m.member.photo_url || undefined} size={64} />
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-ink text-[16px]">{m.member.name}</h3>
-                  <p className="text-primary font-medium text-[13px]">{m.role}</p>
-                  
-                  <div className="mt-3 space-y-2">
-                    {phones.map((phone, i) => (
-                      <button 
-                        key={`phone-${i}`} 
-                        onClick={() => handlePhoneTap(phone, m.member.name)}
-                        className="flex items-center gap-2 text-ink2 active:text-primary press w-full text-left"
-                        aria-label={`Call ${m.member.name} at ${phone}`}
-                      >
-                        <Phone size={15} className="shrink-0" />
-                        <span className="text-[14px]">{phone}</span>
-                      </button>
-                    ))}
-                    
-                    {emails.map((email, i) => (
-                      <a 
-                        key={`email-${i}`} 
-                        href={`mailto:${email}`}
-                        className="flex items-center gap-2 text-ink2 active:text-primary press w-full"
-                        aria-label={`Email ${m.member.name} at ${email}`}
-                      >
-                        <Mail size={15} className="shrink-0" />
-                        <span className="text-[14px] break-all">{email}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
+            <AdministrationMemberCard
+              key={m.id}
+              name={m.member.name}
+              role={m.role}
+              photo={m.member.photo_url || undefined}
+              phones={phones}
+              emails={emails}
+              onPhone={handlePhoneTap}
+            />
           );
         })}
+        </div>
       </div>
 
       <PhoneActionSheet contactPhone={contactPhone} onClose={() => setContactPhone(null)} />
-    </Screen>
+    </LeadershipScreen>
   );
 }

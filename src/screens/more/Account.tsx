@@ -35,10 +35,10 @@ export function Account() {
         </Card>
       )}
 
-      <h2 className="mb-2 mt-6 text-[13px] font-semibold uppercase tracking-wide text-ink2">{t('account.security')}</h2>
+      <h2 className="mb-3 mt-6 flex items-center gap-2.5 px-1 font-sans text-[11.5px] font-semibold uppercase tracking-[0.14em] text-ink2"><span aria-hidden className="h-px w-5 bg-gold" />{t('account.security')}</h2>
       <Card className="p-0">
         <button onClick={() => setPwOpen(true)} className="press flex w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-card2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emeraldl text-emerald"><KeyRound size={18} /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-emeraldl text-emerald"><KeyRound size={18} strokeWidth={1.8} /></span>
           <span className="flex-1 text-[15px] font-medium text-ink">{t('account.changePassword')}</span>
         </button>
       </Card>

@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Mail, Phone, MapPin, Building, ChevronRight, UserRound } from 'lucide-react';
-import { Screen } from '../../layouts/AppShell';
+import { Mail, Phone, Building, ChevronRight } from 'lucide-react';
 import { Card, Avatar, Skeleton } from '../../components/ui/primitives';
 import { PhoneActionSheet, usePhoneAction } from '../../components/patterns/PhoneAction';
-import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState } from '../../components/ui/states';
 import { getZoneById, getZoneAdministration, getZoneHouses, Zone, ZoneAdministration, ZoneHouse } from '../../services/zoneService';
+import { AdministrationSectionHeading, LeadershipScreen } from '../../components/patterns/AdministrationUI';
 
 export function ZoneProfile() {
   const { id } = useParams<{ id: string }>();
@@ -57,32 +56,32 @@ export function ZoneProfile() {
 
   if (error) {
     return (
-      <Screen back title="Zone Details">
+      <LeadershipScreen title="Zone Details">
         <ErrorState 
           title="Unable to load zone data." 
           body="Please check your connection and try again."
         />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (loading) {
     return (
-      <Screen back title="Zone Details">
+      <LeadershipScreen title="Zone Details">
         <div className="space-y-3">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-28 w-full" />
         </div>
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (!zone) {
     return (
-      <Screen back title="Zone Details">
+      <LeadershipScreen title="Zone Details">
         <EmptyState title="Zone not found." />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
@@ -128,13 +127,13 @@ export function ZoneProfile() {
   };
 
   return (
-    <Screen back title={zone.name}>
-      <div className="space-y-4">
+    <LeadershipScreen title={zone.name} description={`Administration, lead house and institutions in ${zone.name}.`}>
+      <div className="space-y-5 pt-3">
         
         {/* Administration Section */}
         {admin && (
           <div>
-            <h2 className="mb-2 px-1 text-[12.5px] font-semibold uppercase tracking-wide text-ink2">Administration</h2>
+            <AdministrationSectionHeading title="Zone Administration" />
             <div className="space-y-3">
               
               {/* Lead House */}
@@ -194,16 +193,16 @@ export function ZoneProfile() {
 
         {/* Houses Section */}
         <div>
-          <h2 className="mb-2 px-1 text-[12.5px] font-semibold uppercase tracking-wide text-ink2">Houses</h2>
+          <AdministrationSectionHeading title="Houses" detail={`${houses.length} houses`} />
           {houses.length > 0 ? (
             <Card className="overflow-hidden p-0">
               {houses.map((house, i) => (
                 <button 
                   key={house.id} 
                   onClick={() => navigate(`/institutions/${house.id}`)}
-                  className={`press flex w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-card2 ${i > 0 ? 'border-t border-line' : ''}`}
+                  className={`press flex min-h-[56px] w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-card2 ${i > 0 ? 'border-t border-line' : ''}`}
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-emeraldl text-primary">
                     <Building size={16} />
                   </span>
                   <span className="flex-1 text-[15px] font-medium text-ink">{house.name}</span>
@@ -219,6 +218,6 @@ export function ZoneProfile() {
       </div>
 
       <PhoneActionSheet contactPhone={contactPhone} onClose={() => setContactPhone(null)} />
-    </Screen>
+    </LeadershipScreen>
   );
 }

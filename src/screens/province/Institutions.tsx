@@ -70,10 +70,10 @@ export function Institutions() {
       </button>
     }>
       <SearchField value={query} placeholder={t('inst.searchPlaceholder')} onChange={(e) => setQuery(e.target.value)} />
-      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 md:-mx-6 md:px-6">
+      <div className="no-scrollbar -mx-4 mt-3 flex snap-x scroll-px-4 gap-2 overflow-x-auto overscroll-x-contain px-4 py-0.5 after:block after:w-2 after:shrink-0 md:-mx-6 md:scroll-px-6 md:px-6 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-28px),transparent)]">
         {cats.map((c) => <FilterChip key={c.id} active={cat === c.id} onClick={() => setCat(cat === c.id ? null : c.id)}>{t(c.key)}</FilterChip>)}
       </div>
-      <div className="no-scrollbar -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 md:-mx-6 md:px-6">
+      <div className="no-scrollbar -mx-4 mt-2 flex snap-x scroll-px-4 gap-2 overflow-x-auto overscroll-x-contain px-4 py-0.5 after:block after:w-2 after:shrink-0 md:-mx-6 md:scroll-px-6 md:px-6 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-28px),transparent)]">
         {zones.map((z) => <FilterChip key={z} active={zone === z} onClick={() => setZone(zone === z ? null : z)}>{z}</FilterChip>)}
       </div>
 
@@ -176,7 +176,7 @@ export function InstitutionProfile() {
   }
 
   if (error) return <Screen title={t('inst.title')} back><ErrorState title="Unable to load institution" body={error} /></Screen>;
-  if (!inst) return <Screen title={t('inst.title')} back><EmptyState title="Not found" /></Screen>;
+  if (!inst) return <Screen title={t('inst.title')} back><EmptyState title="Not found" body="This item may have been removed or is no longer available." /></Screen>;
 
   return (
     <Screen back title={inst.name}>

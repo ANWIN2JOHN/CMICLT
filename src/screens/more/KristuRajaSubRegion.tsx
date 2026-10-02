@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, MapPin, ChevronRight } from 'lucide-react';
-import { Screen } from '../../layouts/AppShell';
 import { Card, Avatar, Skeleton } from '../../components/ui/primitives';
 import { PhoneActionSheet, usePhoneAction } from '../../components/patterns/PhoneAction';
-import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState } from '../../components/ui/states';
 import { getKristuRajaSubRegionAdmin } from '../../services/cmiExternalAdministrationService';
 import type { CmiExternalAdministration } from '../../data/types';
+import { AdministrationSectionHeading, LeadershipScreen } from '../../components/patterns/AdministrationUI';
 
 export function KristuRajaSubRegion() {
   const navigate = useNavigate();
@@ -42,32 +41,32 @@ export function KristuRajaSubRegion() {
 
   if (error) {
     return (
-      <Screen back title="Kristu Raja Sub-Region">
+      <LeadershipScreen title="Kristu Raja Sub-Region">
         <ErrorState 
           title="Unable to load administration data." 
           body="Please check your connection and try again."
         />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (loading) {
     return (
-      <Screen back title="Kristu Raja Sub-Region">
+      <LeadershipScreen title="Kristu Raja Sub-Region">
         <div className="space-y-3">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-28 w-full" />
         </div>
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (!data) {
     return (
-      <Screen back title="Kristu Raja Sub-Region">
+      <LeadershipScreen title="Kristu Raja Sub-Region">
         <EmptyState title="No records available." />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
@@ -97,11 +96,14 @@ export function KristuRajaSubRegion() {
   ];
 
   return (
-    <Screen back title="Kristu Raja Sub-Region, Jammu-Kashmir">
-      <div className="space-y-4">
+    <LeadershipScreen
+      title="Kristu Raja Sub-Region"
+      description="Mission leadership, administration and centers serving Jammu-Kashmir."
+    >
+      <div className="space-y-5 pt-3">
         
         {/* Introductory Card */}
-        <Card className="p-4">
+        <Card className="border-l-[3px] border-l-gold p-5">
           <p className="text-[14px] leading-relaxed text-ink2">
             In 1989, Bishop Hippolitus (Bishop of Jammu-Kashmir) entrusted Poonch and Rajouri Districts of Jammu-Kashmir state to St. Thomas province for mission work. The CMI fathers, together with the CMC sisters and Nazareth sisters of Thalassery, began the mission work in 1989. There are now six centers in the mission: Jammu, Nowshera, Lamberi, Sunderbani, Rajouri and Poonch.
           </p>
@@ -109,15 +111,15 @@ export function KristuRajaSubRegion() {
 
         {/* Mission Centers Section */}
         <div>
-          <h2 className="mb-2 px-1 text-[12.5px] font-semibold uppercase tracking-wide text-ink2">Mission Centers</h2>
+          <AdministrationSectionHeading title="Mission Centers" detail={`${missionCenters.length} centers`} />
           <Card className="overflow-hidden p-0">
             {missionCenters.map((center, i) => (
               <button 
                 key={center.id} 
                 onClick={() => navigate(`/institutions/${center.id}`)}
-                className={`press flex w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-card2 ${i > 0 ? 'border-t border-line' : ''}`}
+                className={`press flex min-h-[56px] w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-card2 ${i > 0 ? 'border-t border-line' : ''}`}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-emeraldl text-primary">
                   <MapPin size={16} />
                 </span>
                 <span className="flex-1 text-[15px] font-medium text-ink">{center.name}</span>
@@ -129,7 +131,7 @@ export function KristuRajaSubRegion() {
 
         {/* Administration Section */}
         <div>
-          <h2 className="mb-2 px-1 text-[12.5px] font-semibold uppercase tracking-wide text-ink2">Administration</h2>
+          <AdministrationSectionHeading title="Sub-Regional Administration" />
           <Card className="p-4">
             <div className="flex items-start gap-4">
               <Avatar name={displayName} src={photoUrl} size={64} />
@@ -146,7 +148,7 @@ export function KristuRajaSubRegion() {
                     <button 
                       key={`phone-${i}`} 
                       onClick={() => handlePhoneTap(phone, displayName)}
-                      className="flex items-center gap-2 text-ink2 active:text-primary press w-full text-left"
+                      className="press flex min-h-11 w-full items-center gap-2 rounded-[12px] bg-card2 px-3 text-left text-ink2 active:text-primary"
                       aria-label={`Call ${displayName} at ${phone}`}
                     >
                       <Phone size={15} className="shrink-0" />
@@ -158,7 +160,7 @@ export function KristuRajaSubRegion() {
                     <a 
                       key={`email-${i}`} 
                       href={`mailto:${email}`}
-                      className="flex items-center gap-2 text-ink2 active:text-primary press w-full"
+                      className="press flex min-h-11 w-full items-center gap-2 rounded-[12px] bg-card2 px-3 text-ink2 active:text-primary"
                       aria-label={`Email ${displayName} at ${email}`}
                     >
                       <Mail size={15} className="shrink-0" />
@@ -174,6 +176,6 @@ export function KristuRajaSubRegion() {
       </div>
 
       <PhoneActionSheet contactPhone={contactPhone} onClose={() => setContactPhone(null)} />
-    </Screen>
+    </LeadershipScreen>
   );
 }

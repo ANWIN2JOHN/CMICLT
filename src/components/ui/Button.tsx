@@ -18,11 +18,11 @@ const base =
   'press inline-flex items-center justify-center gap-2 font-medium rounded-[var(--r-input)] select-none disabled:opacity-45 disabled:pointer-events-none';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary text-onprimary shadow-[var(--shadow-sm)] active:bg-primary-strong',
-  secondary: 'bg-emeraldl text-emerald dark:text-ink border border-line active:bg-card2',
-  outline: 'border border-line text-ink bg-transparent active:bg-card2',
-  text: 'text-primary bg-transparent active:bg-emeraldl',
-  danger: 'bg-error text-white active:brightness-95',
+  primary: 'bg-primary text-onprimary shadow-[var(--shadow-sm)] hover:bg-primary-strong active:bg-primary-strong',
+  secondary: 'bg-emeraldl text-emerald dark:text-ink border border-line hover:border-[color-mix(in_srgb,var(--c-primary)_30%,var(--c-border))] active:bg-card2',
+  outline: 'border border-line text-ink bg-card hover:bg-card2 active:bg-card2',
+  text: 'text-primary bg-transparent hover:bg-emeraldl active:bg-emeraldl',
+  danger: 'bg-error text-white hover:brightness-95 active:brightness-90 dark:bg-[color-mix(in_srgb,var(--c-error)_78%,black)]',
 };
 
 const sizes: Record<Size, string> = {
@@ -55,7 +55,7 @@ export function IconButton({ label, className, children, ...rest }: IconButtonPr
     <button
       aria-label={label}
       className={cn(
-        'press inline-flex items-center justify-center rounded-full text-ink min-h-[44px] min-w-[44px] active:bg-card2',
+        'press inline-flex items-center justify-center rounded-full text-ink min-h-[44px] min-w-[44px] hover:bg-card2 active:bg-card2',
         className,
       )}
       {...rest}

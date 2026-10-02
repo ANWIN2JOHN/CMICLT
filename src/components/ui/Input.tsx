@@ -10,7 +10,7 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const control =
-  'w-full min-h-[52px] rounded-[var(--r-input)] bg-card border px-4 text-[16px] text-ink placeholder:text-ink2/70 outline-none transition-colors focus:border-primary';
+  'w-full min-h-[52px] rounded-[var(--r-input)] bg-card border px-4 text-[16px] text-ink placeholder:text-ink2/70 outline-none transition-[border-color,box-shadow] duration-150 hover:border-[color-mix(in_srgb,var(--c-primary)_25%,var(--c-border))] focus:border-primary focus:ring-[3px] focus:ring-[var(--c-ring)] aria-[invalid=true]:focus:ring-[color-mix(in_srgb,var(--c-error)_30%,transparent)]';
 
 export function TextInput({ label, error, hint, leftIcon, className, id, ...rest }: FieldProps) {
   const fid = id || rest.name;
@@ -29,8 +29,8 @@ export function TextInput({ label, error, hint, leftIcon, className, id, ...rest
         />
       </div>
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-[13px] text-error">
-          <AlertCircle size={14} /> {error}
+        <span role="alert" className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-error">
+          <AlertCircle size={14} className="mt-[2px] shrink-0" /> {error}
         </span>
       ) : hint ? (
         <span className="mt-1.5 block text-[13px] text-ink2">{hint}</span>
@@ -57,14 +57,14 @@ export function PasswordInput({ label, error, hint, className, id, ...rest }: Fi
           type="button"
           onClick={() => setShow((s) => !s)}
           aria-label={show ? 'Hide password' : 'Show password'}
-          className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-ink2 active:bg-card2"
+          className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-ink2 hover:bg-card2 hover:text-ink active:bg-card2"
         >
           {show ? <EyeOff size={19} /> : <Eye size={19} />}
         </button>
       </div>
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-[13px] text-error">
-          <AlertCircle size={14} /> {error}
+        <span role="alert" className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-error">
+          <AlertCircle size={14} className="mt-[2px] shrink-0" /> {error}
         </span>
       ) : hint ? (
         <span className="mt-1.5 block text-[13px] text-ink2">{hint}</span>
@@ -98,8 +98,8 @@ export function SelectField({ label, error, hint, options, className, id, ...res
         <ChevronDown size={18} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink2" />
       </div>
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-[13px] text-error">
-          <AlertCircle size={14} /> {error}
+        <span role="alert" className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-error">
+          <AlertCircle size={14} className="mt-[2px] shrink-0" /> {error}
         </span>
       ) : hint ? (
         <span className="mt-1.5 block text-[13px] text-ink2">{hint}</span>
@@ -122,7 +122,7 @@ export function TextArea({ label, error, hint, className, id, rows = 4, ...rest 
         id={fid}
         rows={rows}
         className={cn(
-          'w-full min-h-[52px] rounded-[var(--r-input)] bg-card border px-4 py-3 text-[16px] leading-relaxed text-ink placeholder:text-ink2/70 outline-none transition-colors focus:border-primary',
+          'w-full min-h-[52px] rounded-[var(--r-input)] bg-card border px-4 py-3 text-[16px] leading-relaxed text-ink placeholder:text-ink2/70 outline-none transition-[border-color,box-shadow] duration-150 hover:border-[color-mix(in_srgb,var(--c-primary)_25%,var(--c-border))] focus:border-primary focus:ring-[3px] focus:ring-[var(--c-ring)] aria-[invalid=true]:focus:ring-[color-mix(in_srgb,var(--c-error)_30%,transparent)]',
           error ? 'border-error' : 'border-line',
           className,
         )}
@@ -130,8 +130,8 @@ export function TextArea({ label, error, hint, className, id, rows = 4, ...rest 
         {...rest}
       />
       {error ? (
-        <span className="mt-1.5 flex items-center gap-1.5 text-[13px] text-error">
-          <AlertCircle size={14} /> {error}
+        <span role="alert" className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-error">
+          <AlertCircle size={14} className="mt-[2px] shrink-0" /> {error}
         </span>
       ) : hint ? (
         <span className="mt-1.5 block text-[13px] text-ink2">{hint}</span>
@@ -150,7 +150,7 @@ export function SearchField({ className, value, onClear, ...rest }: SearchProps)
       <input
         type="search"
         value={value}
-        className="w-full min-h-[52px] rounded-[var(--r-pill)] bg-card border border-line pl-11 pr-4 text-[16px] text-ink placeholder:text-ink2/70 outline-none focus:border-primary"
+        className="w-full min-h-[52px] rounded-[var(--r-pill)] bg-card border border-line pl-11 pr-4 text-[16px] text-ink placeholder:text-ink2/70 outline-none transition-[border-color,box-shadow] duration-150 focus:border-primary focus:ring-[3px] focus:ring-[var(--c-ring)]"
         {...rest}
       />
     </div>

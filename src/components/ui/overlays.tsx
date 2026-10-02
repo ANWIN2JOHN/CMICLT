@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useLockBodyScroll } from '../../lib/hooks';
 import { Button } from './Button';
@@ -19,13 +19,13 @@ export function BottomSheet({ open, onClose, title, children, footer }: {
   if (!open || typeof document === 'undefined') return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="absolute inset-0 bg-black/45 anim-fade-up" onClick={onClose} />
-      <div className="anim-sheet-up relative flex max-h-[88vh] w-full flex-col rounded-t-[var(--r-card)] bg-card md:mx-4 md:max-w-[520px] md:rounded-[var(--r-card)]">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] anim-fade-up" onClick={onClose} />
+      <div className="anim-sheet-up relative flex max-h-[88vh] w-full flex-col rounded-t-[24px] border-t border-line bg-card shadow-[var(--shadow-lg)] md:mx-4 md:border md:max-w-[520px] md:rounded-[var(--r-card)]">
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-line md:hidden" />
         {title && (
           <div className="flex items-center justify-between px-5 pb-2 pt-4">
-            <h2 className="text-[19px] font-semibold text-ink">{title}</h2>
-            <button aria-label="Close" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full text-ink2 active:bg-card2">
+            <h2 className="font-head text-[19px] font-semibold leading-snug text-ink">{title}</h2>
+            <button aria-label="Close" onClick={onClose} className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full text-ink2 transition-colors hover:bg-card2 hover:text-ink active:bg-card2">
               <X size={22} />
             </button>
           </div>
@@ -47,9 +47,9 @@ export function Dialog({ open, onClose, title, body, confirmLabel = 'Confirm', c
   if (!open || typeof document === 'undefined') return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
-      <div className="anim-scale-in relative w-full max-w-[400px] rounded-[var(--r-card)] bg-card p-6 shadow-[var(--shadow-lg)]">
-        <h2 className="text-[19px] font-semibold text-ink">{title}</h2>
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="anim-scale-in relative w-full max-w-[400px] rounded-[var(--r-card)] border border-line bg-card p-6 shadow-[var(--shadow-lg)]">
+        <h2 className="font-head text-[19px] leading-snug font-semibold text-ink">{title}</h2>
         {body && <div className="mt-2 text-[15px] leading-relaxed text-ink2">{body}</div>}
         <div className="mt-6 flex gap-3">
           <Button variant="outline" fullWidth onClick={onClose}>{cancelLabel}</Button>
@@ -77,13 +77,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={{ notify }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(88px+var(--safe-bottom))] z-[60] flex flex-col items-center gap-2 px-4">
+      <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(88px+var(--safe-bottom))] z-[60] flex flex-col items-center gap-2 px-4">
         {toasts.map((t) => (
           <div key={t.id} className={cn(
-            'anim-fade-up pointer-events-auto flex items-center gap-2.5 rounded-[var(--r-pill)] px-4 py-3 text-[15px] font-medium text-white shadow-[var(--shadow-lg)]',
+            'anim-fade-up pointer-events-auto flex max-w-[440px] items-center gap-2.5 rounded-[var(--r-pill)] px-4 py-3 text-[15px] font-medium text-white shadow-[var(--shadow-lg)]',
             t.tone === 'success' ? 'bg-emeraldd' : 'bg-error',
           )}>
-            <CheckCircle2 size={18} /> {t.msg}
+            {t.tone === 'success' ? <CheckCircle2 size={18} className="shrink-0" /> : <AlertCircle size={18} className="shrink-0" />} {t.msg}
           </div>
         ))}
       </div>

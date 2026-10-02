@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Building, ChevronRight, Mail, Phone, Globe, MapPin } from 'lucide-react';
-import { Screen } from '../../layouts/AppShell';
-import { Card, Avatar, Skeleton } from '../../components/ui/primitives';
+import { Card } from '../../components/ui/primitives';
 import { PhoneActionSheet, usePhoneAction } from '../../components/patterns/PhoneAction';
-import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState } from '../../components/ui/states';
 import { getProvincialAdministrations } from '../../services/provincialAdministrationService';
 import type { ProvincialAdministration } from '../../data/types';
+import {
+  AdministrationMemberCard,
+  AdministrationSectionHeading,
+  AdministrationSkeletons,
+  LeadershipScreen,
+} from '../../components/patterns/AdministrationUI';
 
 export function ProvincialAdministrations() {
   const nav = useNavigate();
@@ -36,24 +40,20 @@ export function ProvincialAdministrations() {
 
   if (error) {
     return (
-      <Screen back title="Provincial Administrations">
+      <LeadershipScreen title="CMI Provincial Administrations">
         <ErrorState 
           title="Unable to load provincial administrations." 
           body="Please check your connection and try again."
         />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (loading) {
     return (
-      <Screen back title="Provincial Administrations">
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-20 w-full" />
-          ))}
-        </div>
-      </Screen>
+      <LeadershipScreen title="CMI Provincial Administrations">
+        <div className="pt-3"><AdministrationSkeletons compact /></div>
+      </LeadershipScreen>
     );
   }
 
@@ -72,39 +72,57 @@ export function ProvincialAdministrations() {
 
   if (provinces.length === 0) {
     return (
-      <Screen back title="Provincial Administrations">
+      <LeadershipScreen title="CMI Provincial Administrations">
         <EmptyState title="No provincial administrations available." />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   return (
-    <Screen back title="Provincial Administrations">
-      <div className="space-y-3">
-        {provinces.map((p) => (
-          <Card 
-            key={p.province_name} 
-            onClick={() => nav(`/provincial-administrations/${encodeURIComponent(p.province_name)}`)}
-            className="flex flex-col gap-2 p-4"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emeraldl text-emerald">
-                  <Building size={20} />
-                </div>
-                <div>
-                  <h3 className="text-[16px] font-semibold text-ink">{p.province_name}</h3>
-                  {p.province_address && (
-                    <p className="text-[13px] text-ink2 line-clamp-1">{p.province_address}</p>
-                  )}
-                </div>
-              </div>
-              <ChevronRight size={18} className="text-ink2 shrink-0" />
-            </div>
-          </Card>
-        ))}
+    <LeadershipScreen
+      title="CMI Provincial Administrations"
+      description="Provincial leadership and office contacts across the CMI congregation."
+    >
+      <div className="pt-1">
+        <div className="mb-3 flex items-center gap-3 px-1">
+          <span className="h-px w-6 bg-gold" aria-hidden />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink2">
+            {provinces.length} {provinces.length === 1 ? 'Province' : 'Provinces'}
+          </p>
+          <span className="h-px flex-1 bg-line" aria-hidden />
+        </div>
+        <ul className="grid gap-2.5 md:grid-cols-2 md:gap-3">
+          {provinces.map((province) => {
+            const to = `/provincial-administrations/${encodeURIComponent(province.province_name)}`;
+            return (
+              <li key={to}>
+                <button
+                  type="button"
+                  onClick={() => nav(to)}
+                  className="group relative flex min-h-[88px] w-full items-center gap-4 overflow-hidden rounded-[18px] border border-line bg-card p-4 text-left shadow-[0_1px_2px_rgba(15,40,30,0.04)] transition-[border-color,box-shadow,transform] duration-150 ease-out hover:border-emerald/30 hover:shadow-[0_4px_14px_-6px_rgba(15,60,45,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg active:scale-[0.99] active:bg-card2 md:p-5"
+                >
+                  <span className="absolute inset-y-4 left-0 w-[3px] rounded-r-full bg-gold opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden />
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-emeraldl text-emerald ring-1 ring-inset ring-emerald/10 dark:text-primary dark:ring-primary/20">
+                    <Building size={21} strokeWidth={1.7} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-head text-[16px] font-semibold leading-snug tracking-[-0.005em] text-ink">
+                      {province.province_name}
+                    </span>
+                    <span className="mt-1 block text-[13px] leading-[1.5] text-ink2">
+                      {province.province_address || 'View provincial administration'}
+                    </span>
+                  </span>
+                  <span className="flex h-11 w-8 shrink-0 items-center justify-end text-ink2/60 transition-[color,transform] duration-150 group-hover:translate-x-0.5 group-hover:text-primary">
+                    <ChevronRight size={18} strokeWidth={1.75} />
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
-    </Screen>
+    </LeadershipScreen>
   );
 }
 
@@ -138,25 +156,20 @@ export function ProvincialAdministrationDetail() {
 
   if (error) {
     return (
-      <Screen back title={decodedName}>
+      <LeadershipScreen title={decodedName}>
         <ErrorState 
           title="Unable to load provincial administration." 
           body="Please check your connection and try again."
         />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
   if (loading) {
     return (
-      <Screen back title={decodedName}>
-        <div className="space-y-3">
-          <Skeleton className="h-24 w-full mb-4" />
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-28 w-full" />
-          ))}
-        </div>
-      </Screen>
+      <LeadershipScreen title={decodedName}>
+        <div className="pt-3"><AdministrationSkeletons count={4} /></div>
+      </LeadershipScreen>
     );
   }
 
@@ -164,9 +177,9 @@ export function ProvincialAdministrationDetail() {
 
   if (provinceMembers.length === 0) {
     return (
-      <Screen back title={decodedName}>
+      <LeadershipScreen title={decodedName}>
         <EmptyState title="No provincial administration available." />
-      </Screen>
+      </LeadershipScreen>
     );
   }
 
@@ -175,8 +188,9 @@ export function ProvincialAdministrationDetail() {
 
 
   return (
-    <Screen back title={decodedName}>
-      <Card className="p-5 mb-5 space-y-3">
+    <LeadershipScreen title={decodedName} description={`Provincial office and council contacts for ${decodedName}.`}>
+      <div className="pt-3">
+      <Card className="mb-5 space-y-1 p-5">
         <h2 className="text-[18px] font-semibold text-ink">{p.province_name}</h2>
         {p.province_address && (
           <div className="flex items-start gap-2.5 text-ink2">
@@ -187,7 +201,7 @@ export function ProvincialAdministrationDetail() {
         {p.province_phone && (
           <button 
             onClick={() => handlePhoneTap(p.province_phone!, p.province_name)}
-            className="flex items-center gap-2.5 text-ink2 active:text-primary press text-left"
+            className="flex min-h-[44px] items-center gap-2.5 text-ink2 active:text-primary press text-left"
           >
             <Phone size={18} className="shrink-0" />
             <span className="text-[14px]">{p.province_phone}</span>
@@ -196,7 +210,7 @@ export function ProvincialAdministrationDetail() {
         {p.province_email && (
           <a 
             href={`mailto:${p.province_email}`}
-            className="flex items-center gap-2.5 text-ink2 active:text-primary press"
+            className="flex min-h-[44px] items-center gap-2.5 text-ink2 active:text-primary press"
           >
             <Mail size={18} className="shrink-0" />
             <span className="text-[14px] break-all">{p.province_email}</span>
@@ -206,7 +220,7 @@ export function ProvincialAdministrationDetail() {
           <a 
             href={p.province_website.startsWith('http') ? p.province_website : `https://${p.province_website}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2.5 text-primary press"
+            className="flex min-h-[44px] items-center gap-2.5 text-primary press"
           >
             <Globe size={18} className="shrink-0" />
             <span className="text-[14px]">{p.province_website}</span>
@@ -214,47 +228,23 @@ export function ProvincialAdministrationDetail() {
         )}
       </Card>
 
-      <div className="space-y-3">
+      <AdministrationSectionHeading title="Provincial Council" detail={`${provinceMembers.length} members`} />
+      <div className="grid gap-3 md:grid-cols-2">
         {provinceMembers.map((m) => (
-          <Card key={m.id} className="p-4">
-            <div className="flex items-start gap-4">
-              <Avatar name={m.member_name} src={m.photo_url || undefined} size={64} />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-ink text-[16px]">{m.member_name}</h3>
-                <p className="text-primary font-medium text-[13px]">{m.designation}</p>
-                
-                <div className="mt-3 space-y-2">
-                  {m.mobile_numbers && m.mobile_numbers.map((phone, i) => phone ? (
-                    <button 
-                      key={i} 
-                      onClick={() => handlePhoneTap(phone, m.member_name)}
-                      className="flex items-center gap-2 text-ink2 active:text-primary press w-full text-left"
-                      aria-label={`Call ${m.member_name} at ${phone}`}
-                    >
-                      <Phone size={15} className="shrink-0" />
-                      <span className="text-[14px]">{phone}</span>
-                    </button>
-                  ) : null)}
-                  
-                  {m.email_addresses && m.email_addresses.map((email, i) => email ? (
-                    <a 
-                      key={i} 
-                      href={`mailto:${email}`}
-                      className="flex items-center gap-2 text-ink2 active:text-primary press w-full"
-                      aria-label={`Email ${m.member_name} at ${email}`}
-                    >
-                      <Mail size={15} className="shrink-0" />
-                      <span className="text-[14px] break-all">{email}</span>
-                    </a>
-                  ) : null)}
-                </div>
-              </div>
-            </div>
-          </Card>
+          <AdministrationMemberCard
+            key={m.id}
+            name={m.member_name}
+            role={m.designation}
+            photo={m.photo_url || undefined}
+            phones={(m.mobile_numbers || []).filter(Boolean)}
+            emails={(m.email_addresses || []).filter(Boolean)}
+            onPhone={handlePhoneTap}
+          />
         ))}
+      </div>
       </div>
 
       <PhoneActionSheet contactPhone={contactPhone} onClose={() => setContactPhone(null)} />
-    </Screen>
+    </LeadershipScreen>
   );
 }

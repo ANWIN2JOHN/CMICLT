@@ -81,7 +81,7 @@ export function ProvinceHome() {
     <Screen back title={t('more.provinceHome')}>
       {/* Editorial hero */}
       <div className="relative overflow-hidden rounded-[var(--r-card)]" style={{ background: 'linear-gradient(135deg,#0d684f,#064e3b)' }}>
-        <img src="https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1000&q=60" alt="" className="h-44 w-full object-cover opacity-35" />
+        <img src="https://images.unsplash.com/photo-1438032005730-c779502df39b?auto=format&fit=crop&w=1000&q=60" alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} className="h-44 w-full object-cover opacity-35" />
         <div className="absolute inset-0 flex flex-col justify-end p-5">
           <h1 className="font-head text-[26px] font-bold leading-tight text-white">{t('tagline')}</h1>
           <p className="mt-1 text-[14px] text-white/80">{t('provinceName')}</p>
@@ -125,7 +125,7 @@ export function ProvinceHome() {
         )}
 
         <Card className="border-gold/30 bg-goldl p-5">
-          <div className="flex items-center gap-2 text-gold"><Quote size={18} /><span className="text-[13px] font-semibold uppercase tracking-wide">{t('province.spiritualQuote')}</span></div>
+          <div className="flex items-center gap-2 text-goldink"><Quote size={18} /><span className="text-[13px] font-semibold uppercase tracking-wide">{t('province.spiritualQuote')}</span></div>
           <p className="mt-2 font-head text-[18px] italic leading-relaxed text-ink">“Do not waste even a single moment, for time lost is never regained.”</p>
           <p className="mt-2 text-[13px] text-ink2">— St. Kuriakose Elias Chavara</p>
         </Card>
@@ -156,7 +156,7 @@ export function About() {
   ];
   return (
     <Screen back title={t('more.about')}>
-      <img src="https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1000&q=60" alt="" className="h-44 w-full rounded-[var(--r-card)] object-cover" />
+      <img src="https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1000&q=60" alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} className="h-44 w-full rounded-[var(--r-card)] bg-emeraldl object-cover" />
       <ol className="relative mt-6 ml-1 border-l-2 border-line pl-6">
         {sections.map((s, i) => (
           <li key={i} className="relative pb-7 last:pb-0">
@@ -202,7 +202,7 @@ export function Administration() {
 
   if (id) {
     const l = leadership.find((x) => x.id === id);
-    if (!l) return <Screen back title={t('more.administration')}><EmptyState title="Not found" /></Screen>;
+    if (!l) return <Screen back title={t('more.administration')}><EmptyState title="Not found" body="This item may have been removed or is no longer available." /></Screen>;
     return (
       <Screen back title={l.role}>
         <div className="flex flex-col items-center pt-2 text-center">
@@ -217,6 +217,7 @@ export function Administration() {
   return (
     <Screen back title={t('more.administration')}>
       <p className="text-[15px] text-ink2">The leadership team guiding the province.</p>
+      {leadership.length === 0 && <div className="mt-4"><EmptyState title="No leadership listed" body="Administration details will appear here once they are published." /></div>}
       <div className="mt-4 grid gap-2.5 md:grid-cols-2">
         {leadership.map((l) => (
           <Card key={l.id} onClick={() => nav(`/administration/${l.id}`)} className="flex items-center gap-3.5 p-3.5">

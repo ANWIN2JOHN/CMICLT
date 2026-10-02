@@ -113,13 +113,13 @@ export function SignIn() {
           <div className="flex items-center gap-2 rounded-[14px] bg-card2 px-3.5 py-3 text-[14px] text-ink">
             <Mail size={16} className="text-ink2" />
             <span className="truncate">{identifier}</span>
-            <button className="press ml-auto text-[13px] font-medium text-primary" onClick={() => { setStep('identify'); setPassword(''); setError(null); }}>Change</button>
+            <button className="press -my-2 ml-auto flex min-h-11 items-center rounded-full px-2 text-[13px] font-medium text-primary hover:bg-emeraldl" onClick={() => { setStep('identify'); setPassword(''); setError(null); }}>Change</button>
           </div>
           <PasswordInput label={t('auth.password')} value={password} autoFocus
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
             onKeyDown={(e) => e.key === 'Enter' && onSignIn()}
             error={error ?? undefined} />
-          <button className="press -mt-1 self-start text-[14px] font-medium text-primary" onClick={() => nav('/forgot', { state: { identifier } })}>
+          <button className="press -mt-1 -ml-2 flex min-h-11 items-center self-start rounded-full px-2 text-[14px] font-medium text-primary hover:bg-emeraldl" onClick={() => nav('/forgot', { state: { identifier } })}>
             {t('auth.forgot')}
           </button>
           <Button fullWidth size="lg" loading={busy} disabled={!password} onClick={onSignIn}>{t('auth.signIn')}</Button>

@@ -11,7 +11,7 @@ export function Card({ className, children, onClick, as = 'div' }: {
       onClick={onClick}
       className={cn(
         'rounded-[var(--r-card)] bg-card border border-line shadow-[var(--shadow-sm)]',
-        onClick && 'press w-full text-left active:shadow-[var(--shadow-md)]',
+        onClick && 'press w-full text-left hover:border-[color-mix(in_srgb,var(--c-primary)_28%,var(--c-border))] hover:shadow-[var(--shadow-md)] active:bg-card2',
         className,
       )}
     >
@@ -26,7 +26,7 @@ export function Avatar({ name, src, size = 48 }: { name: string; src?: string; s
   const initials = name.replace(/^Fr\.\s*/, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   const color = avatarColors[name.length % avatarColors.length];
   if (src) {
-    return <img src={src} alt="" width={size} height={size} className="rounded-full object-cover" style={{ width: size, height: size }} />;
+    return <img src={src} alt="" width={size} height={size} className="shrink-0 rounded-full bg-card2 object-cover" style={{ width: size, height: size }} />;
   }
   return (
     <span
@@ -48,8 +48,8 @@ export function FilterChip({ active, children, onClick, count }: {
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'press inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] border px-4 text-[14px] font-medium',
-        active ? 'border-primary bg-emeraldl text-emerald dark:text-ink' : 'border-line bg-card text-ink2',
+        'press inline-flex min-h-[44px] shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-[var(--r-pill)] border px-4 text-[14px] font-medium',
+        active ? 'border-primary bg-emeraldl text-emerald dark:text-ink' : 'border-line bg-card text-ink2 hover:border-[color-mix(in_srgb,var(--c-primary)_28%,var(--c-border))] hover:text-ink',
       )}
     >
       {children}
@@ -61,10 +61,10 @@ export function FilterChip({ active, children, onClick, count }: {
 type Tone = 'neutral' | 'success' | 'warning' | 'error' | 'gold' | 'primary';
 const toneMap: Record<Tone, string> = {
   neutral: 'bg-card2 text-ink2',
-  success: 'bg-[color-mix(in_srgb,var(--c-success)_16%,transparent)] text-success',
-  warning: 'bg-[color-mix(in_srgb,var(--c-warning)_18%,transparent)] text-warning',
-  error: 'bg-[color-mix(in_srgb,var(--c-error)_16%,transparent)] text-error',
-  gold: 'bg-goldl text-gold',
+  success: 'bg-[color-mix(in_srgb,var(--c-success)_16%,transparent)] text-[color-mix(in_srgb,var(--c-success)_72%,black)] dark:text-success',
+  warning: 'bg-[color-mix(in_srgb,var(--c-warning)_18%,transparent)] text-[color-mix(in_srgb,var(--c-warning)_72%,black)] dark:text-warning',
+  error: 'bg-[color-mix(in_srgb,var(--c-error)_16%,transparent)] text-[color-mix(in_srgb,var(--c-error)_72%,black)] dark:text-error',
+  gold: 'bg-goldl text-goldink',
   primary: 'bg-emeraldl text-emerald dark:text-ink',
 };
 export function StatusChip({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
@@ -79,9 +79,11 @@ export function StatusChip({ tone = 'neutral', children }: { tone?: Tone; childr
 export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-[19px] font-semibold text-ink">{title}</h2>
+      <h2 className="flex min-w-0 items-center gap-2.5 font-head text-[19px] font-semibold leading-snug text-ink">
+        <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-gold" />{title}
+      </h2>
       {action && (
-        <button onClick={onAction} className="press text-[14px] font-medium text-primary min-h-[44px] flex items-center">
+        <button onClick={onAction} className="press -mr-2 flex min-h-[44px] items-center rounded-full px-2 text-[14px] font-medium text-primary hover:bg-emeraldl">
           {action}
         </button>
       )}

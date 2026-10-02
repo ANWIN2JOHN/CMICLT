@@ -14,9 +14,11 @@
   --c-emerald-light: #ecf8f2;
   --c-gold: #d7a33d;
   --c-gold-light: #fff6df;
+  /* Gold for text/icons on light surfaces (AA on card + gold-light) */
+  --c-gold-ink: #8f620e;
 
   /* Semantic surfaces / text (light) */
-  --c-bg: #f6f8f5;
+  --c-bg: #f7f5ef;
   --c-card: #ffffff;
   --c-card-2: #f1f5f1;
   --c-text: #17211d;
@@ -36,13 +38,13 @@
   --c-ring: color-mix(in srgb, var(--c-emerald) 45%, transparent);
 
   /* Radii */
-  --r-card: 22px;
+  --r-card: 18px;
   --r-input: 14px;
   --r-pill: 999px;
 
   /* Elevation (subtle only) */
-  --shadow-sm: 0 1px 2px rgba(20, 40, 30, 0.05), 0 1px 3px rgba(20, 40, 30, 0.04);
-  --shadow-md: 0 4px 14px rgba(20, 40, 30, 0.07);
+  --shadow-sm: 0 1px 2px rgba(15, 40, 30, 0.04);
+  --shadow-md: 0 4px 14px -6px rgba(15, 60, 45, 0.18);
   --shadow-lg: 0 12px 32px rgba(20, 40, 30, 0.1);
 
   /* Fonts */
@@ -66,20 +68,22 @@
   --c-card-2: #17281f;
   --c-text: #eef3ef;
   --c-text-2: #9fb0a6;
-  --c-border: #24382e;
+  --c-border: #273c32;
 
-  --c-primary: #1a9670;
+  --c-primary: #2bb086;
+  --c-primary-fill: #0f7a5c;
   --c-primary-strong: #0d684f;
   --c-on-primary: #f2fbf7;
   --c-gold: #e2b455;
   --c-gold-light: #2a2413;
+  --c-gold-ink: #e2b455;
   --c-success: #34a878;
   --c-warning: #dca24a;
   --c-error: #e06d6d;
   --c-ring: color-mix(in srgb, #1a9670 55%, transparent);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 18px -6px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.5);
 }
 
@@ -99,6 +103,7 @@
   --color-emeraldl: var(--c-emerald-light);
   --color-gold: var(--c-gold);
   --color-goldl: var(--c-gold-light);
+  --color-goldink: var(--c-gold-ink);
   --color-success: var(--c-success);
   --color-warning: var(--c-warning);
   --color-error: var(--c-error);
@@ -138,8 +143,10 @@
   .font-head { font-family: var(--font-head); }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .press { transition: transform 140ms ease, background-color 160ms ease, box-shadow 160ms ease; }
-  .press:active { transform: scale(0.97); }
+  .press { transition: transform 140ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease; }
+  .press:active { transform: scale(0.985); }
+  /* Brand emerald is too dark to read on dark surfaces; lift it to the dark-mode primary. */
+  .dark .text-emerald, .dark .text-emerald2 { color: var(--c-primary); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -161,3 +168,12 @@
 .anim-slide-right { animation: cmi-slide-right 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-scale-in { animation: cmi-scale-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-splash-in { animation: cmi-splash-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Dark mode: filled primary surfaces use a deeper emerald so on-primary text meets WCAG AA. */
+@layer utilities {
+  .dark .bg-primary { background-color: var(--c-primary-fill); }
+}
+@layer utilities {
+  .dark .hover\:bg-primary-strong:hover,
+  .dark .active\:bg-primary-strong:active { background-color: var(--c-primary-strong); }
+}
